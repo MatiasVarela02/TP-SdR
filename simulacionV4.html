@@ -1,0 +1,2005 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Simulador de Incendio - Propagación Realista por Puertas</title>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    html, body {
+      margin: 0; overflow: hidden; background-color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overscroll-behavior: none;
+      touch-action: manipulation;
+    }
+    canvas { display: block; touch-action: none; }
+
+    /* ============ BOTÓN HAMBURGUESA (solo móvil) ============ */
+    #btn-menu {
+      display: none;
+      position: fixed;
+      top: 10px; left: 10px;
+      width: 46px; height: 46px;
+      background: rgba(0,0,0,0.88);
+      color: #fff;
+      border: 2px solid rgba(255,150,0,0.65);
+      border-radius: 10px;
+      font-size: 22px;
+      cursor: pointer;
+      z-index: 101;
+      align-items: center;
+      justify-content: center;
+      user-select: none; -webkit-user-select: none;
+      transition: background 0.2s, transform 0.1s;
+    }
+    #btn-menu:active { transform: scale(0.94); background: #ff5500; }
+
+    #ui-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 99;
+    }
+
+    /* ============ UI DE ESCRITORIO (sin cambios) ============ */
+    #ui {
+      position: absolute; top: 15px; left: 15px; color: #fff;
+      background: rgba(0,0,0,0.85); padding: 15px 20px; border-radius: 8px;
+      font-size: 14px; line-height: 1.6; width: 260px;
+    }
+    .control-group { margin-top: 10px; }
+    label { cursor: pointer; display: block; margin-bottom: 5px; transition: 0.2s; }
+    label:hover { color: #ff5500; }
+    input[type="checkbox"] { margin-right: 8px; cursor: pointer; }
+    input[type="range"] { cursor: pointer; accent-color: #ff5500; }
+    hr { border: 0; border-top: 1px solid #555; margin: 12px 0; }
+    .speed-group { display: flex; gap: 5px; margin-top: 5px; }
+    .speed-btn {
+      flex: 1; padding: 6px 0; background-color: #333; color: white;
+      border: 1px solid #555; border-radius: 4px; cursor: pointer;
+      font-size: 12px; transition: 0.2s; text-align: center;
+    }
+    .speed-btn:hover { background-color: #555; }
+    .speed-btn.active { background-color: #ff5500; border-color: #ff7700; font-weight: bold; }
+    .action-btn {
+      margin-top: 10px; width: 100%; padding: 8px; background-color: #444;
+      color: white; border: 1px solid #666; border-radius: 4px;
+      cursor: pointer; font-weight: bold; transition: background 0.2s;
+    }
+    .action-btn:hover { background-color: #d93600; border-color: #ff5500; }
+    #btn-detener-humo.stopped { background-color: #ff5500; border-color: #ff7700; }
+
+    .action-btn.btn-alarm {
+      background-color: #c62828; border-color: #e53935;
+    }
+    .action-btn.btn-alarm:hover { background-color: #d32f2f; border-color: #f44336; }
+    .action-btn.btn-alarm.active {
+      background-color: #e65100; border-color: #ff9800;
+      animation: pulse-alarm 1.2s infinite alternate;
+    }
+    @keyframes pulse-alarm {
+      0% { box-shadow: 0 0 4px #ff5500; }
+      100% { box-shadow: 0 0 16px #ff1100; }
+    }
+    .badge-normal {
+      margin-top: 8px; padding: 6px 10px; background: rgba(0,200,83,0.15);
+      border: 1px solid #00c853; color: #69f0ae; border-radius: 6px;
+      font-size: 12px; font-weight: bold; text-align: center;
+    }
+    .badge-alerta {
+      margin-top: 8px; padding: 6px 10px; background: rgba(255,61,0,0.25);
+      border: 1px solid #ff3d00; color: #ff9e80; border-radius: 6px;
+      font-size: 12px; font-weight: bold; text-align: center;
+      animation: pulse-badge 1s infinite alternate;
+    }
+    @keyframes pulse-badge { 0% { opacity:0.8; } 100% { opacity:1.0; } }
+
+    #contador-muertes {
+      margin-top: 4px;
+      font-size: 26px; font-weight: bold; text-align: center;
+      color: #ff4444; letter-spacing: 1px;
+      text-shadow: 0 0 8px rgba(255,0,0,0.6);
+    }
+
+    /* Contador de víctimas fijo — oculto en escritorio */
+    #victimas-movil { display: none; }
+
+    #tabla-seguridad {
+      position: absolute; top: 15px; right: 15px; color: #fff;
+      background: rgba(0,0,0,0.85); padding: 12px 15px; border-radius: 8px;
+      font-size: 14px; min-width: 240px;
+    }
+    #tabla-seguridad h3 { margin: 0 0 8px 0; font-size: 14px; color: #ff9955; letter-spacing: 0.5px; }
+    #tabla-seguridad table { width: 100%; border-collapse: collapse; }
+    #tabla-seguridad th, #tabla-seguridad td { padding: 6px 8px; text-align: left; border-bottom: 1px solid #444; }
+    #tabla-seguridad th { color: #ccc; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    #tabla-seguridad td.estado-normal        { color: #4fff4f; font-weight: bold; }
+    #tabla-seguridad td.estado-peligroso     { color: #ffdd33; font-weight: bold; }
+    #tabla-seguridad td.estado-muy-peligroso { color: #ff8800; font-weight: bold; }
+    #tabla-seguridad td.estado-mortal        { color: #ff4444; font-weight: bold; }
+
+    #minimapa-marco {
+      position: absolute; bottom: 15px; right: 15px;
+      width: 280px; height: 280px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-radius: 8px; overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+      pointer-events: none; z-index: 10;
+    }
+    #minimapa-titulo {
+      background: rgba(0,0,0,0.85); color: #ff9955;
+      font-size: 12px; font-weight: bold; text-align: center;
+      padding: 6px 0; text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid #444;
+    }
+
+    /* ============ MÓVIL / TABLET ============ */
+    @media (max-width: 768px), (pointer: coarse) and (max-width: 900px) {
+      #btn-menu { display: flex; }
+
+      /* Panel de control oculto por defecto en móvil */
+      #ui { display: none; }
+
+      body.ui-open #ui-overlay { display: block; }
+
+      body.ui-open #ui {
+        display: block;
+        position: fixed;
+        top: 62px; left: 8px; right: 8px;
+        bottom: auto;
+        width: auto;
+        max-height: calc(100vh - 176px);
+        max-height: calc(100dvh - 176px);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+        z-index: 100;
+        font-size: 13px;
+        padding: 12px 14px 18px;
+        line-height: 1.5;
+        scrollbar-width: thin;
+        scrollbar-color: #ff5500 rgba(255,255,255,0.12);
+      }
+      body.ui-open #ui::-webkit-scrollbar { width: 6px; }
+      body.ui-open #ui::-webkit-scrollbar-track { background: rgba(255,255,255,0.12); border-radius: 3px; }
+      body.ui-open #ui::-webkit-scrollbar-thumb { background: #ff5500; border-radius: 3px; }
+
+      /* Controles más táctiles */
+      body.ui-open input[type="checkbox"] { width: 18px; height: 18px; vertical-align: middle; }
+      body.ui-open label { padding: 5px 0; font-size: 14px; margin-bottom: 3px; }
+      body.ui-open .speed-btn,
+      body.ui-open .action-btn {
+        padding: 11px 0; font-size: 13px; min-height: 42px;
+      }
+      body.ui-open input[type="range"] { min-height: 26px; width: 100% !important; }
+      body.ui-open hr { margin: 10px 0; }
+
+      /* Tabla de seguridad arriba a la derecha cuando UI cerrada */
+      #tabla-seguridad {
+        position: fixed;
+        top: 10px; right: 10px;
+        left: auto; bottom: auto;
+        width: auto;
+        min-width: 0;
+        max-width: 60vw;
+        z-index: 50;
+        font-size: 11px;
+        padding: 8px 10px;
+        line-height: 1.3;
+      }
+      #tabla-seguridad h3 { font-size: 11px; margin-bottom: 5px; }
+      #tabla-seguridad th, #tabla-seguridad td { padding: 3px 5px; font-size: 11px; }
+      #tabla-seguridad th { font-size: 9px; }
+
+      /* Con el menú abierto ocultamos tabla y minimapa para no tapar el panel */
+      body.ui-open #tabla-seguridad,
+      body.ui-open #minimapa-marco { display: none; }
+
+      #minimapa-marco {
+        width: 128px; height: 128px;
+        bottom: 8px; right: 8px;
+        top: auto; left: auto;
+        border-width: 1px;
+        z-index: 49;
+      }
+      #minimapa-titulo { font-size: 10px; padding: 4px 0; }
+
+      /* Ajustes menores de legibilidad en textos */
+      .speed-btn { font-size: 11px; }
+      .action-btn { font-size: 12px; }
+
+      /* ---------- Contador de víctimas fijo (solo móvil) ---------- */
+      .victimas-section { display: none; }
+
+      #victimas-movil {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        left: 8px; bottom: 8px;
+        min-width: 104px;
+        padding: 6px 14px 8px;
+        background: rgba(0,0,0,0.88);
+        border: 1px solid rgba(255,85,0,0.6);
+        border-radius: 10px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.7);
+        z-index: 102;
+        pointer-events: none;
+        text-align: center;
+      }
+      #victimas-movil-titulo {
+        font-size: 10px; font-weight: bold;
+        letter-spacing: 1px; text-transform: uppercase;
+        color: #ff9955;
+      }
+      #contador-muertes-movil {
+        font-size: 24px; font-weight: bold; line-height: 1.1;
+        color: #ff4444; letter-spacing: 1px;
+        text-shadow: 0 0 8px rgba(255,0,0,0.6);
+      }
+    }
+
+    @media (max-width: 400px) {
+      #minimapa-marco { width: 108px; height: 108px; }
+      #tabla-seguridad { font-size: 10px; padding: 6px 8px; }
+      #tabla-seguridad td { padding: 2px 4px; }
+    }
+  </style>
+</head>
+<body>
+  <button id="btn-menu" type="button" aria-label="Menú">☰</button>
+  <div id="ui-overlay"></div>
+
+  <div id="ui">
+    <strong>Focos de Incendio</strong>
+    <div class="control-group">
+      <label><input type="checkbox" id="chk-foco1"> Salón grande</label>
+      <label><input type="checkbox" id="chk-foco2"> Pasillo</label>
+      <label><input type="checkbox" id="chk-foco3"> Salón pequeño</label>
+    </div>
+    <hr>
+    <strong>Velocidad de Simulación</strong>
+    <div class="speed-group">
+      <button id="btn-1x" class="speed-btn active">Normal 1x</button>
+      <button id="btn-2x" class="speed-btn">Rápido 2x</button>
+    </div>
+    <hr>
+    <strong>Ventilación</strong>
+    <div class="control-group">
+      <label><input type="checkbox" id="chk-ventanas"> Abrir Ventanas</label>
+    </div>
+    <hr>
+    <button id="btn-detener-humo" class="action-btn">Detener Humo</button>
+    <button id="btn-limpiar" class="action-btn">Limpiar Humo y Enfriar</button>
+    <hr>
+    <strong>Personas</strong>
+    <div class="control-group">
+      <label><input type="checkbox" id="chk-personas" checked> Mostrar Personas</label>
+      <label><input type="checkbox" id="chk-movimiento" checked> Habilitar Movimiento</label>
+      <label><input type="checkbox" id="chk-evacuacion" checked> Evacuar al detectar humo</label>
+      <div style="margin-top: 8px;">
+        <label style="display:flex; justify-content:space-between; margin-bottom: 2px;">
+          <span>Salón Grande (Max 38):</span> <span id="lbl-cant-grande">8</span>
+        </label>
+        <input type="range" id="rng-cant-grande" min="0" max="38" value="8" style="width: 100%;">
+      </div>
+      <div style="margin-top: 8px;">
+        <label style="display:flex; justify-content:space-between; margin-bottom: 2px;">
+          <span>Salón Pequeño (Max 16):</span> <span id="lbl-cant-pequeno">4</span>
+        </label>
+        <input type="range" id="rng-cant-pequeno" min="0" max="16" value="4" style="width: 100%;">
+      </div>
+      <div style="margin-top: 8px;">
+        <label style="display:flex; justify-content:space-between; margin-bottom: 2px;">
+          <span>Velocidad:</span> <span id="lbl-personas-vel">1.2x</span>
+        </label>
+        <input type="range" id="rng-personas-vel" min="0.5" max="3.0" step="0.5" value="1.2" style="width: 100%;">
+      </div>
+    </div>
+    <button id="btn-reset-personas" class="action-btn" style="margin-top: 8px;">Reubicar en Computadoras</button>
+    <div class="victimas-section">
+      <hr>
+      <strong>Víctimas</strong>
+      <div id="contador-muertes">0</div>
+    </div>
+  </div>
+
+  <!-- Contador de víctimas fijo (solo se muestra en móvil) -->
+  <div id="victimas-movil">
+    <div id="victimas-movil-titulo">Víctimas</div>
+    <div id="contador-muertes-movil">0</div>
+  </div>
+
+  <div id="tabla-seguridad">
+    <h3>Estado de Seguridad</h3>
+    <table>
+      <thead>
+        <tr><th>Ubicación</th><th>Seguridad</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Salón grande</td>  <td id="estado-salon-grande"  class="estado-normal">Normal</td></tr>
+        <tr><td>Pasillo</td>       <td id="estado-pasillo"       class="estado-normal">Normal</td></tr>
+        <tr><td>Salón pequeño</td> <td id="estado-salon-pequeno" class="estado-normal">Normal</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="minimapa-marco">
+    <div id="minimapa-titulo">MAPA DE CALOR</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+    /* ============================================================
+       DETECCIÓN DE MÓVIL — ajusta calidad automáticamente
+       ============================================================ */
+    const IS_MOBILE = window.matchMedia('(max-width: 768px)').matches ||
+                      /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    let simSpeed = 1.0;
+    let isSmokeGenerating = true;
+
+    const TECHO_HUMO        = 2.55;
+    const MAX_SMOKE         = IS_MOBILE ? 2500 : 6000;
+    const SMOKE_FLOOR       = 0.6;
+    const SMOKE_SPAWN_Y     = 0.7;
+    const SMOKE_STRIDE      = 4;
+    const HEATMAP_INTENSITY = 0.45;
+    const HEATMAP_EVERY     = IS_MOBILE ? 3 : 2;
+    const VELOCIDAD_HUMO    = 0.4;
+
+    /* ---------- Sensibilidad del humo para evacuar ---------- */
+    const HUMO_THRESHOLD    = 1.2;
+
+    const ROOM_STATUS_EVERY = 1;
+    const ROOM_RED_T        = 0.30;
+    const ROOM_YELLOW_T     = 0.08;
+    const ROOM_RED_PCT      = 0.28;
+    const ROOM_AVG_MORTAL   = 16;
+    const ROOM_VD_RED_PCT   = 0.15;
+    const ROOM_VD_WARM_PCT  = 0.35;
+    const ROOM_AVG_VDANGER  = 8;
+    const ROOM_WARM_PCT     = 0.10;
+    const ROOM_AVG_DANGER   = 2;
+
+    /* ---------- Parámetros de personas ---------- */
+    const PERSON_BASE_SPEED_SCALE = 0.5;
+    const CONTAGION_RADIUS        = 0.9;
+    const DEATH_TIME_LIMIT        = 20.0;
+
+    const HEAT_SPEED_YELLOW_T = 0.25;
+    const HEAT_SPEED_ORANGE_T = 0.50;
+    const HEAT_SPEED_RED_T    = 0.75;
+
+    /* ---------- Barreras invisibles ---------- */
+    let windowsOpen = false;
+    let alarmActive = false;
+
+    const BARRIERS = [
+      { x1: 19.9, z1: -6.0,  x2: 20.9, z2: -15.0 },
+      { x1: 11.0, z1: -6.5,  x2: 14.0, z2: -6.5  }
+    ];
+
+    function segmentsIntersect(x1, z1, x2, z2, x3, z3, x4, z4) {
+      const d = (x2 - x1) * (z4 - z3) - (z2 - z1) * (x4 - x3);
+      if (Math.abs(d) < 1e-10) return false;
+      const t = ((x3 - x1) * (z4 - z3) - (z3 - z1) * (x4 - x3)) / d;
+      const u = ((x3 - x1) * (z2 - z1) - (z3 - z1) * (x2 - x1)) / d;
+      return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+    }
+
+    function wouldHitBarrier(px, pz, nx, nz) {
+      if (windowsOpen) return false;
+      for (let b = 0; b < BARRIERS.length; b++) {
+        const bar = BARRIERS[b];
+        if (segmentsIntersect(px, pz, nx, nz, bar.x1, bar.z1, bar.x2, bar.z2)) return true;
+      }
+      return false;
+    }
+
+    let collisionGrid = null;
+    let gridMinX = 0, gridMinZ = 0;
+    let gridStepsX = 0, gridStepsZ = 0;
+    const GRID_RES = 0.08;
+    const ALTURA_CORTE = 1.2;
+    const PADDING_CELDAS = 1;
+
+    const ROOMS = [
+      { id:'estado-salon-grande',  name:'Salón grande', minX:12, maxX:22, minZ:-16, maxZ:-6 },
+      { id:'estado-pasillo',       name:'Pasillo',
+        minX:5, maxX:13, minZ:-12, maxZ:-4,
+        redPct:0.12, avgMortal:6,
+        vdRedPct:0.06, vdWarmPct:0.20, avgVDanger:3.5,
+        warmPct:0.06, avgDanger:1.2 },
+      { id:'estado-salon-pequeno', name:'Salón pequeño', minX:-3, maxX:5, minZ:-9, maxZ:-1 }
+    ];
+    ROOMS.forEach(r => r.estado = 'Normal');
+
+    function setSpeed(speed, btnId) {
+      simSpeed = speed;
+      document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(btnId).classList.add('active');
+    }
+    document.getElementById('btn-1x').addEventListener('click', () => setSpeed(1.0, 'btn-1x'));
+    document.getElementById('btn-2x').addEventListener('click', () => setSpeed(2.0, 'btn-2x'));
+
+    /* ============================================================
+       MENÚ HAMBURGUESA MÓVIL
+       ============================================================ */
+    const btnMenu = document.getElementById('btn-menu');
+    const uiOverlay = document.getElementById('ui-overlay');
+
+    function toggleMenu(force) {
+      const open = (typeof force === 'boolean') ? force : !document.body.classList.contains('ui-open');
+      document.body.classList.toggle('ui-open', open);
+      btnMenu.textContent = open ? '✕' : '☰';
+      btnMenu.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
+    }
+
+    btnMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMenu();
+    });
+    uiOverlay.addEventListener('click', () => toggleMenu(false));
+
+    /* ---------- Escena base ---------- */
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xd9dfe5);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera.position.set(35, 30, 40);
+    camera.layers.enable(1);
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: !IS_MOBILE,
+      powerPreference: 'high-performance'
+    });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_MOBILE ? 1.0 : 1.5));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.1;
+    // En móvil: 1 dedo rota, 2 dedos zoom + pan (comportamiento por defecto)
+    controls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN
+    };
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.9);
+    sun.position.set(20, 40, 20);
+    sun.castShadow = true;
+    const shadowSize = IS_MOBILE ? 512 : 1024;
+    sun.shadow.mapSize.set(shadowSize, shadowSize);
+    sun.shadow.camera.near = 0.5;
+    sun.shadow.camera.far  = 120;
+    sun.shadow.camera.left = -40;
+    sun.shadow.camera.right = 40;
+    sun.shadow.camera.top = 40;
+    sun.shadow.camera.bottom = -40;
+    scene.add(sun);
+
+    /* ============================================================
+       CONSTRUCCIÓN DEL MODELO
+       ============================================================ */
+    const meshes = [{"v":3,"s":1000,"p":[18767,0,-13537,18768,0,-13412,18767,2830,-13537,18768,2830,-13412,18790,0,-13537,18790,1000,-13537,18790,2830,-13537,18791,0,-13412,18791,2830,-13412,17088,0,-13396,17088,0,-13387,17088,1000,-13396,17088,2830,-13387,17087,2830,-13512,17087,0,-13512,17113,0,-13513,17113,2830,-13513,17115,0,-13388,17115,2830,-13388,14681,1000,-13362,14680,1000,-13422,17086,1000,-13519,14679,1000,-13486,14681,0,-13362,17086,0,-13519,14680,0,-13422,14679,0,-13486,14681,0,-13353,14681,2830,-13353,14677,2830,-13591,14677,0,-13591,18791,1000,-13413,20419,1000,-13559,20421,1000,-13436,20419,0,-13559,20421,0,-13436,18791,0,-13413,20400,150,-10122,19995,150,-9904,20400,0,-10122,19995,0,-9904,19995,2830,-9904,20335,150,-9822,20307,150,-9563,20335,0,-9822,20279,0,-9304,20279,2150,-9304,20307,2830,-9563,20279,2830,-9304,20743,400,-13376,20497,400,-13402,20569,400,-11713,20323,400,-11738,20497,0,-13402,20743,0,-13376,20323,0,-11738,20569,0,-11713,20569,2150,-11713,20323,2150,-11738,20321,0,-11739,20321,2830,-11739,20323,2830,-11738,20743,2150,-13376,20497,2150,-13402,20743,2830,-13376,20569,2830,-11713,19988,150,-9833,19988,0,-9833,19993,150,-9880,19993,2830,-9880,20033,2830,-9329,20030,2830,-9330,20033,2150,-9329,20030,0,-9330,20033,400,-9329,20033,0,-9329,20057,0,-9581,20057,2830,-9581,19710,0,-9592,19710,2830,-9592,19760,0,-10061,19760,2830,-10061,20166,0,-10280,20166,2830,-10280,20400,2830,-10122,19862,400,-7691,20104,400,-7665,20280,400,-9303,20105,400,-7640,20101,400,-7641,20101,0,-7641,20105,0,-7640,20280,0,-9303,19862,0,-7691,20104,2150,-7665,19862,2150,-7691,19855,0,-7692,19855,2830,-7692,19862,2830,-7691,19974,0,-6452,19749,0,-6702,13029,0,-6452,13029,0,-6702,20101,2150,-7641,20105,2150,-7640,20101,2830,-7641,20105,2830,-7640,19974,2830,-6452,12101,0,-7856,12101,2150,-7856,11852,0,-7864,11852,2830,-7864,12101,2830,-7856,11953,0,-11473,11953,2830,-11473,12203,0,-11466,12203,2830,-11466,20501,0,-13437,20501,2830,-13437,20421,2830,-13436,20779,2830,-13691,20779,0,-13691,20527,0,-13687,20418,0,-13686,20527,2830,-13687,20418,2830,-13686,20746,0,-13376,20746,2830,-13376,20659,2830,-14954,20659,0,-14954,14575,0,-13351,14542,0,-12186,14299,0,-12442,14331,0,-13597,14431,0,-13598,12225,0,-12251,11982,0,-12508,14428,0,-13598,14484,0,-15599,14734,0,-15573,14535,0,-16089,17869,0,-15246,20959,0,-15418,18081,0,-15223,17892,0,-13649,18107,0,-13402,17895,0,-13399,17891,0,-13649,20959,2830,-15418,17892,2830,-13649,17869,2830,-15246,14734,2830,-15573,18081,2830,-15223,14535,2830,-16089,14484,2830,-15599,14428,2830,-13598,14431,2830,-13598,14575,2830,-13351,14331,2830,-13597,14299,2830,-12442,11982,2830,-12508,12225,2830,-12251,14542,2830,-12186,18107,2830,-13402,17891,2830,-13649,17895,2830,-13399,12189,2150,-6702,12189,2150,-6452,12189,0,-6702,12189,0,-6452,11829,0,-7042,11812,0,-6452,11829,2150,-7042,11812,2600,-6452,11829,2830,-7042,11812,2830,-6452,12078,0,-7034,12078,2830,-7034,12069,0,-6702,12069,2830,-6702,12078,2150,-7035,11852,2150,-7862,11852,2830,-7862,12078,2830,-7035,13029,2150,-6452,13029,2150,-6702,19749,2830,-6702,20339,150,-9559,20339,2830,-9559,3858,0,-764,4133,2000,-768,3858,2600,-764,4933,2000,-779,5276,2600,-783,5276,0,-783,4933,0,-779,4133,0,-768,3673,1200,-5086,3666,0,-5586,3714,1200,-2086,3733,0,-762,3733,2600,-762,3666,2100,-5586,3673,2100,-5086,3628,2600,-8284,3714,2100,-2086,3652,2100,-6586,3628,0,-8284,3652,0,-6586,3902,0,-6589,3902,2100,-6589,3916,2100,-5589,3916,0,-5589,3923,2100,-5089,3964,2100,-2089,3923,1200,-5089,3964,1200,-2089,11791,0,-7995,11791,2600,-7995,11794,0,-7745,11794,2600,-7745,11809,0,-6701,11809,2600,-6701,5975,2600,-6621,5975,1861,-6621,5975,0,-6621,9623,2600,-7715,9623,0,-7715,5228,0,-6510,5228,1861,-6510,5976,0,-6520,5976,1861,-6520,5707,0,-7890,5957,0,-7894,5707,1861,-7890,5957,1861,-7894,5459,1861,-7887,5209,1861,-7883,5459,0,-7887,5209,0,-7883,5477,1861,-6614,5725,1861,-6617,4930,2000,-992,4130,2000,-981,4130,0,-981,4930,0,-992,5208,0,-7933,5208,2600,-7933,5230,2600,-6360,5230,0,-6360,5023,0,-993,5023,2600,-993,3980,2600,-979,3980,0,-979,5978,0,-6371,6014,0,-3781,5761,0,-4027,5728,0,-6367,5235,0,-3770,4982,0,-4017,9869,0,-7969,9869,2600,-7969,5725,2600,-6617,5477,2600,-6614,5978,2600,-6371,5703,0,-8190,5700,0,-8440,5703,2600,-8190,5700,2600,-8440,5448,2600,-8560,5446,2600,-8687,5448,0,-8560,5446,0,-8687,9612,2600,-8494,9612,0,-8494,5458,0,-7937,5458,2600,-7937,9859,0,-8748,9859,2600,-8748,5728,2600,-6367,5761,2600,-4027,6014,2600,-3781,5206,2600,-7933,5206,0,-7933,5706,0,-7940,5706,2600,-7940,4982,2600,-4017,3880,0,-8163,3880,2600,-8163,5203,2600,-8181,5203,0,-8181,5953,0,-8194,5953,2600,-8194,5235,2600,-3770,3607,2600,-760,3607,0,-760,3614,2600,-299,3868,2600,-52,365,2600,-254,118,2600,0,0,2600,-8484,254,2600,-8237,254,0,-8237,0,0,-8484,365,0,-254,118,0,0,3614,0,-299,3868,0,-52],"i":[0,1,2,2,1,3,4,0,5,5,0,2,5,2,6,4,5,7,7,5,8,8,5,6,1,7,3,3,7,8,7,1,4,4,1,0,8,6,3,3,6,2,9,10,11,11,10,12,11,12,13,13,14,11,11,14,9,15,14,16,16,14,13,17,15,18,18,15,16,10,17,12,12,17,18,10,9,17,17,9,15,15,9,14,18,16,12,12,16,13,19,11,20,20,11,21,20,21,22,19,23,11,11,23,9,11,9,21,21,9,24,25,20,26,26,20,22,21,24,22,22,24,26,23,19,27,27,19,28,28,19,20,28,20,29,29,20,30,30,20,25,5,31,32,32,31,33,34,35,4,4,35,36,33,35,32,32,35,34,31,36,33,33,36,35,5,4,31,31,4,36,32,34,5,5,34,4,37,38,39,39,38,40,40,38,41,42,43,44,44,43,45,45,43,46,46,43,47,46,47,48,49,50,51,51,50,52,53,50,54,54,50,49,55,52,53,53,52,50,54,49,56,56,49,51,57,51,58,58,51,52,58,52,59,59,52,55,59,60,58,58,60,61,57,58,62,62,58,63,64,65,62,62,65,57,66,67,68,68,67,40,68,40,41,41,69,68,66,42,67,67,42,44,70,71,72,72,71,73,72,73,74,74,73,75,75,45,74,74,45,46,74,46,72,76,73,77,77,73,71,78,76,79,79,76,77,80,78,81,81,78,79,82,80,83,83,80,81,59,82,60,60,82,83,39,56,37,37,56,51,37,51,57,65,84,57,57,84,37,39,55,56,56,55,53,56,53,54,40,82,39,39,82,59,39,59,55,82,40,80,80,40,67,80,67,78,78,67,76,76,67,44,76,44,45,45,75,76,76,75,73,85,86,74,74,86,87,87,86,88,88,86,89,89,90,88,88,90,91,75,74,92,92,74,87,93,85,75,75,85,74,92,87,91,91,87,88,94,86,95,95,86,85,95,85,96,96,85,93,96,97,95,95,97,98,75,92,93,93,92,91,93,91,90,99,100,90,90,100,96,90,96,93,99,101,100,100,101,102,103,94,104,104,94,46,46,94,72,72,94,95,98,70,95,95,70,72,103,104,105,105,104,106,48,106,46,46,106,104,86,94,89,89,94,103,89,103,99,99,103,107,107,103,105,99,90,89,108,109,110,110,109,111,111,109,112,113,110,114,114,110,111,108,115,109,109,115,116,109,116,112,35,117,33,33,117,118,33,118,119,122,123,124,124,123,125,35,33,123,123,33,125,125,33,119,126,121,127,127,121,120,124,128,122,122,128,129,27,130,23,23,130,25,23,25,9,9,25,24,24,25,26,131,132,130,130,132,133,130,133,134,131,135,132,132,135,136,136,135,113,113,135,115,113,115,110,110,115,108,137,138,134,134,138,139,134,139,30,138,140,139,139,140,141,141,140,142,141,142,143,143,142,129,129,142,121,129,121,122,122,121,117,122,117,123,123,117,35,121,126,117,126,53,117,141,143,144,144,143,145,144,145,146,146,147,144,30,25,134,134,25,130,121,142,120,120,142,148,149,150,144,144,150,141,141,150,139,139,150,151,129,128,143,143,128,152,148,142,153,153,142,140,140,138,153,153,138,154,151,29,139,139,29,30,138,137,154,154,137,155,156,155,134,134,155,137,130,27,157,157,27,28,134,133,156,156,133,158,133,132,158,158,132,159,132,136,159,159,136,160,136,113,160,160,113,114,115,135,116,116,135,161,135,131,161,161,131,162,131,130,162,162,130,157,152,163,143,143,163,145,61,118,63,63,118,117,63,117,50,50,117,53,63,58,61,63,50,62,62,50,126,62,126,127,50,53,126,127,64,62,147,146,164,164,146,165,144,147,149,149,147,164,146,145,165,165,145,163,166,167,168,168,167,169,170,171,172,172,171,173,172,173,174,174,173,175,170,172,176,176,172,177,177,172,174,178,176,179,179,176,177,176,178,170,170,178,171,171,178,169,169,178,168,180,172,109,109,172,181,112,182,183,183,182,174,174,172,183,183,172,180,182,181,174,174,181,172,112,109,182,182,109,181,183,180,112,112,180,109,184,173,167,167,173,171,167,171,169,101,99,184,184,99,107,184,107,175,175,173,184,167,166,184,184,166,185,184,185,101,101,185,102,186,185,179,179,185,166,179,166,178,178,166,168,186,100,185,185,100,102,96,100,97,97,100,186,68,38,42,42,38,37,42,37,187,187,43,42,42,66,68,69,84,41,41,84,83,41,83,81,41,81,69,69,81,79,69,79,77,84,65,83,83,65,61,83,61,60,65,64,61,61,64,118,118,64,120,118,120,124,124,120,128,128,120,148,128,148,152,152,148,150,152,150,149,64,127,120,148,153,150,150,153,151,151,153,154,151,154,156,156,154,155,158,157,156,156,157,29,156,29,151,158,159,157,157,159,162,162,159,161,161,159,160,161,160,114,161,114,116,116,114,111,116,111,112,157,28,29,164,165,149,149,165,163,149,163,152,124,125,118,118,125,119,71,70,77,77,70,48,77,48,47,70,98,48,48,98,105,48,105,106,97,186,98,98,186,105,105,186,107,107,186,179,107,179,175,175,179,174,174,179,177,188,84,47,47,84,69,47,69,77,188,187,84,84,187,37,47,43,188,188,43,187,41,38,69,69,38,68,189,190,191,191,190,192,191,192,193,193,192,194,194,192,195,189,196,190,197,198,199,199,198,200,199,200,201,198,197,202,202,197,203,202,203,204,204,203,201,201,203,205,201,205,199,202,204,206,206,204,207,206,207,208,209,210,208,208,210,206,210,211,206,206,211,202,211,212,202,202,212,198,213,214,203,203,214,205,215,213,197,197,213,203,216,215,199,199,215,197,214,216,205,205,216,199,217,218,219,219,218,220,221,222,171,171,222,173,223,222,224,224,222,221,224,221,225,220,226,219,219,226,227,228,229,230,230,229,231,232,233,234,234,233,235,236,237,238,238,237,239,230,231,225,225,231,224,236,240,237,237,240,229,229,240,231,231,240,241,231,241,224,224,241,234,224,234,235,242,192,243,243,192,190,243,190,244,244,190,196,242,245,192,192,245,195,239,237,246,246,237,247,247,237,229,247,229,248,248,229,249,249,229,228,245,242,250,250,242,251,251,242,243,251,243,252,252,243,253,253,243,244,225,221,230,230,221,171,230,171,254,255,256,254,254,256,257,254,257,230,230,257,228,228,257,249,255,258,256,256,258,259,259,258,250,250,258,194,250,194,195,195,245,250,217,260,218,218,260,261,241,240,262,262,240,263,173,264,171,171,264,254,265,266,267,267,266,268,269,270,271,271,270,272,226,273,227,227,273,274,238,275,236,236,275,276,236,276,263,263,240,236,273,268,274,274,268,266,277,272,278,278,272,270,260,277,261,261,277,278,279,248,257,257,248,249,257,256,279,279,256,280,264,281,254,254,281,255,247,282,246,246,282,283,275,284,276,276,284,285,286,280,259,259,280,256,251,286,250,250,286,259,209,287,210,210,287,288,210,288,211,211,288,213,211,213,215,288,252,213,213,252,214,214,252,216,216,252,253,216,253,212,216,212,215,215,212,211,289,288,290,290,288,287,282,289,283,283,289,290,241,262,234,234,262,285,234,285,284,284,232,234,233,291,235,235,291,292,235,292,223,223,224,235,258,255,293,293,255,281,194,258,193,193,258,293,267,292,265,265,292,291,201,200,294,294,200,295,294,296,201,201,296,191,201,191,252,252,191,251,251,191,193,251,193,293,191,296,297,297,296,298,297,298,299,299,298,300,300,298,301,300,301,204,201,252,204,204,252,288,204,288,269,269,288,289,269,289,268,268,289,267,267,289,276,267,276,285,263,279,262,262,279,264,262,264,223,223,264,222,222,264,173,276,247,263,263,247,248,263,248,279,262,223,285,285,223,292,285,292,267,279,280,264,264,280,281,281,280,293,293,280,286,293,286,251,282,247,289,289,247,276,273,278,268,268,278,270,268,270,269,278,273,261,261,273,226,261,226,220,220,218,261,269,300,204,207,204,302,302,204,301,303,300,271,271,300,269,298,304,301,301,304,302,305,299,303,303,299,300,296,306,298,298,306,304,307,297,305,305,297,299,294,295,296,296,295,306,189,191,307,307,191,297,302,303,207,207,303,271,207,271,287,287,271,290,290,271,266,290,266,265,302,304,303,303,304,305,305,304,306,305,306,307,307,306,189,189,306,200,189,200,253,253,200,198,253,198,212,306,295,200,244,196,253,253,196,189,271,272,266,266,272,277,266,277,274,274,277,260,274,260,227,227,260,219,219,260,217,291,284,265,265,284,275,265,275,290,290,275,246,290,246,283,291,233,284,284,233,232,275,238,246,246,238,239,209,208,287,287,208,207],"color":16777215,"metalness":1,"roughness":1,"side":0}];
+
+    if (!meshes || !meshes.length) console.error("No se encontró el array de mallas.");
+
+    const model = new THREE.Group();
+    model.name = 'Laboratorio';
+
+    for (const m of meshes) {
+      const geom = new THREE.BufferGeometry();
+
+      if (m.p && m.i) {
+        const scale = m.s || 1000;
+        const srcPos = m.p;
+        const posArr = new Float32Array(srcPos.length);
+        for (let k = 0; k < srcPos.length; k++) {
+          posArr[k] = srcPos[k] / scale;
+        }
+        geom.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+        geom.setIndex(m.i);
+      } else {
+        geom.setAttribute('position', new THREE.Float32BufferAttribute(m.positions, 3));
+        if (m.normals && m.normals.length) {
+          geom.setAttribute('normal', new THREE.Float32BufferAttribute(m.normals, 3));
+        }
+        if (m.uvs && m.uvs.length) {
+          geom.setAttribute('uv', new THREE.Float32BufferAttribute(m.uvs, 2));
+        }
+        if (m.indices) geom.setIndex(m.indices);
+      }
+
+      const mat = new THREE.MeshStandardMaterial({
+        color:     m.color     ?? 0xe8e8e8,
+        roughness: m.roughness ?? 0.9,
+        metalness:  0.5,
+        side: THREE.DoubleSide,
+        flatShading: true
+      });
+
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      model.add(mesh);
+    }
+
+    scene.add(model);
+    model.updateMatrixWorld(true);
+
+    const bbox   = new THREE.Box3().setFromObject(model);
+    const size   = bbox.getSize(new THREE.Vector3());
+    const center = bbox.getCenter(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z);
+    camera.position.copy(center).add(new THREE.Vector3(maxDim*1.3, maxDim*1.4, maxDim*1.3));
+    camera.lookAt(center);
+    controls.target.copy(center);
+    controls.update();
+
+    /* ---------- Suelo dinámico ---------- */
+    const gridMargin = 2;
+    const floorWidth  = size.x + gridMargin * 2;
+    const floorDepth  = size.z + gridMargin * 2;
+    const floorCenterX = center.x;
+    const floorCenterZ = center.z;
+
+    const floorGeo = new THREE.PlaneGeometry(floorWidth, floorDepth, 100, 100);
+    floorGeo.rotateX(-Math.PI / 2);
+    floorGeo.translate(floorCenterX, 0, floorCenterZ);
+
+    const vertexCount = floorGeo.attributes.position.count;
+    floorGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(vertexCount * 3), 3));
+
+    const floorMat = new THREE.MeshStandardMaterial({ vertexColors:true, roughness:0.9, metalness:0.0 });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    const gridSize = Math.max(floorWidth, floorDepth);
+    const grid = new THREE.GridHelper(gridSize, Math.floor(gridSize), 0x000000, 0x000000);
+    grid.position.set(floorCenterX, 0.02, floorCenterZ);
+    grid.material.opacity = 0.15;
+    grid.material.transparent = true;
+    scene.add(grid);
+
+    /* ---------- Cámara Minimapa ---------- */
+    const mapSizeView = Math.max(floorWidth, floorDepth) / 2 + 1.5;
+    const mapCamera = new THREE.OrthographicCamera(
+      -mapSizeView, mapSizeView, mapSizeView, -mapSizeView, 0.1, 100
+    );
+    mapCamera.position.set(floorCenterX, 50, floorCenterZ);
+    mapCamera.lookAt(floorCenterX, 0, floorCenterZ);
+
+    /* ============================================================
+       LETRERO DE SALIDA
+       ============================================================ */
+    const EXIT_SIGN_POS = { x: 4.62, z: -0.7 };
+    const EXIT_GOAL_POS = { x: 4.62, z: -1.5 };
+
+    function createExitSign(x, z, rotationY = 0) {
+      const canvas = document.createElement('canvas');
+      canvas.width  = 512;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#009933';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 16;
+      ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 140px Arial, Helvetica, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('SALIDA', canvas.width / 2, canvas.height / 2 + 4);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.anisotropy = 8;
+      texture.needsUpdate = true;
+
+      const mat = new THREE.MeshStandardMaterial({
+        map: texture,
+        emissive: 0xffffff,
+        emissiveMap: texture,
+        emissiveIntensity: 0.35,
+        side: THREE.DoubleSide,
+        roughness: 0.6,
+        metalness: 0.0
+      });
+
+      const geo  = new THREE.PlaneGeometry(1.3, 0.6);
+      const sign = new THREE.Mesh(geo, mat);
+      sign.position.set(x, 2.2, z);
+      sign.rotation.y = rotationY;
+      sign.castShadow = false;
+      sign.receiveShadow = false;
+      sign.layers.set(0);
+
+      scene.add(sign);
+      return sign;
+    }
+    createExitSign(EXIT_SIGN_POS.x, EXIT_SIGN_POS.z, 0);
+
+    /* ---------- DEBUG: visualizar barreras ---------- */
+    const SHOW_BARRIERS = false;
+    if (SHOW_BARRIERS) {
+      for (const b of BARRIERS) {
+        const pts = [
+          new THREE.Vector3(b.x1, 0.05, b.z1),
+          new THREE.Vector3(b.x2, 0.05, b.z2)
+        ];
+        const g = new THREE.BufferGeometry().setFromPoints(pts);
+        const line = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xff0000 }));
+        scene.add(line);
+      }
+    }
+
+    /* ---------- Zonas interiores ---------- */
+    const INNER_ROOMS = [
+      { minX: 13.3, maxX: 20.4, minZ: -13.3, maxZ: -6.7, roomIdx: 0 },
+      { minX: 5.8,  maxX: 12.8, minZ: -8.3,  maxZ: -6.6, roomIdx: 1 },
+      { minX: -0.1, maxX: 5.3,  minZ: -8.7,  maxZ: -0.2, roomIdx: 2 },
+      { minX: 12.8, maxX: 13.3, minZ: -8.3,  maxZ: -6.7, roomIdx: 0 },
+      { minX: 5.2,  maxX: 5.8,  minZ: -8.3,  maxZ: -6.6, roomIdx: 2 }
+    ];
+
+    function isInsideRoomGeometry(x, z) {
+      return INNER_ROOMS.some(r =>
+        x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ
+      );
+    }
+
+    function getRoomStatusAt(x, z) {
+      for (let i = 0; i < INNER_ROOMS.length; i++) {
+        const r = INNER_ROOMS[i];
+        if (x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ) {
+          return ROOMS[r.roomIdx].estado || 'Normal';
+        }
+      }
+      return 'Normal';
+    }
+
+    /* ---------- Escáner de colisiones ---------- */
+    let insideGrid = null;
+    let walkableList = [];
+
+    function buildInsideGrid() {
+      insideGrid = new Uint8Array(gridStepsX * gridStepsZ);
+      walkableList = [];
+
+      const seeds = [
+        { x: 17, z: -11 },
+        { x: 9,  z: -8  },
+        { x: 1,  z: -5  }
+      ];
+
+      const queue = [];
+
+      seeds.forEach(s => {
+        const i = Math.floor((s.x - gridMinX) / GRID_RES);
+        const j = Math.floor((s.z - gridMinZ) / GRID_RES);
+        if (i >= 0 && i < gridStepsX && j >= 0 && j < gridStepsZ && isInsideRoomGeometry(s.x, s.z)) {
+          const idx = i + j * gridStepsX;
+          if (collisionGrid[idx] === 0 && insideGrid[idx] === 0) {
+            insideGrid[idx] = 1;
+            queue.push(i, j);
+          }
+        }
+      });
+
+      let head = 0;
+      while (head < queue.length) {
+        const ci = queue[head++];
+        const cj = queue[head++];
+        const cx = gridMinX + ci * GRID_RES;
+        const cz = gridMinZ + cj * GRID_RES;
+
+        walkableList.push({ x: cx, z: cz });
+
+        const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+        for (let d = 0; d < 4; d++) {
+          const ni = ci + dirs[d][0];
+          const nj = cj + dirs[d][1];
+          const nx = gridMinX + ni * GRID_RES;
+          const nz = gridMinZ + nj * GRID_RES;
+
+          if (ni >= 0 && ni < gridStepsX && nj >= 0 && nj < gridStepsZ && isInsideRoomGeometry(nx, nz)) {
+            const nidx = ni + nj * gridStepsX;
+            if (collisionGrid[nidx] === 0 && insideGrid[nidx] === 0) {
+              insideGrid[nidx] = 1;
+              queue.push(ni, nj);
+            }
+          }
+        }
+      }
+    }
+
+    function buildCollisionMap() {
+      gridMinX = bbox.min.x - gridMargin;
+      gridMinZ = bbox.min.z - gridMargin;
+      const gridMaxX = bbox.max.x + gridMargin;
+      const gridMaxZ = bbox.max.z + gridMargin;
+
+      gridStepsX = Math.ceil((gridMaxX - gridMinX) / GRID_RES);
+      gridStepsZ = Math.ceil((gridMaxZ - gridMinZ) / GRID_RES);
+      collisionGrid = new Uint8Array(gridStepsX * gridStepsZ);
+
+      const raycaster = new THREE.Raycaster();
+
+      for (let j = 0; j < gridStepsZ; j++) {
+        const z = gridMinZ + j * GRID_RES;
+        raycaster.set(new THREE.Vector3(gridMinX, ALTURA_CORTE, z), new THREE.Vector3(1,0,0));
+        const hits = raycaster.intersectObject(model, true);
+        for (let k = 0; k < hits.length; k++) {
+          const px = hits[k].point.x;
+          const i = Math.floor((px - gridMinX) / GRID_RES);
+          if (i >= 0 && i < gridStepsX) {
+            for (let di = -PADDING_CELDAS; di <= PADDING_CELDAS; di++)
+              for (let dj = -PADDING_CELDAS; dj <= PADDING_CELDAS; dj++) {
+                const ni = i + di, nj = j + dj;
+                if (ni >= 0 && ni < gridStepsX && nj >= 0 && nj < gridStepsZ)
+                  collisionGrid[ni + nj * gridStepsX] = 1;
+              }
+          }
+        }
+      }
+      for (let i = 0; i < gridStepsX; i++) {
+        const x = gridMinX + i * GRID_RES;
+        raycaster.set(new THREE.Vector3(x, ALTURA_CORTE, gridMinZ), new THREE.Vector3(0,0,1));
+        const hits = raycaster.intersectObject(model, true);
+        for (let k = 0; k < hits.length; k++) {
+          const pz = hits[k].point.z;
+          const j = Math.floor((pz - gridMinZ) / GRID_RES);
+          if (j >= 0 && j < gridStepsZ) {
+            for (let di = -PADDING_CELDAS; di <= PADDING_CELDAS; di++)
+              for (let dj = -PADDING_CELDAS; dj <= PADDING_CELDAS; dj++) {
+                const ni = i + di, nj = j + dj;
+                if (ni >= 0 && ni < gridStepsX && nj >= 0 && nj < gridStepsZ)
+                  collisionGrid[ni + nj * gridStepsX] = 1;
+              }
+          }
+        }
+      }
+
+      buildInsideGrid();
+    }
+    buildCollisionMap();
+
+    /* ============================================================
+       CAMPO DE FLUJO HACIA LA SALIDA
+       ============================================================ */
+    let exitDistField = null;
+
+    function buildExitField() {
+      if (!insideGrid) return;
+      const N = gridStepsX * gridStepsZ;
+      exitDistField = new Int32Array(N);
+      exitDistField.fill(-1);
+
+      let startIdx = -1;
+      let bestD2 = Infinity;
+      for (let j = 0; j < gridStepsZ; j++) {
+        for (let i = 0; i < gridStepsX; i++) {
+          const idx = i + j * gridStepsX;
+          if (insideGrid[idx] !== 1) continue;
+          const x = gridMinX + i * GRID_RES;
+          const z = gridMinZ + j * GRID_RES;
+          const d2 = (x - EXIT_GOAL_POS.x) ** 2 + (z - EXIT_GOAL_POS.z) ** 2;
+          if (d2 < bestD2) { bestD2 = d2; startIdx = idx; }
+        }
+      }
+      if (startIdx < 0) { console.warn('Salida no alcanzable'); return; }
+
+      exitDistField[startIdx] = 0;
+      const queue = [startIdx];
+      let head = 0;
+      while (head < queue.length) {
+        const curr = queue[head++];
+        const d = exitDistField[curr];
+        const ci = curr % gridStepsX;
+        const cj = (curr - ci) / gridStepsX;
+
+        const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+        for (let k = 0; k < 4; k++) {
+          const ni = ci + dirs[k][0];
+          const nj = cj + dirs[k][1];
+          if (ni < 0 || ni >= gridStepsX || nj < 0 || nj >= gridStepsZ) continue;
+          const nidx = ni + nj * gridStepsX;
+          if (exitDistField[nidx] !== -1) continue;
+          if (insideGrid[nidx] !== 1) continue;
+          exitDistField[nidx] = d + 1;
+          queue.push(nidx);
+        }
+      }
+    }
+    buildExitField();
+
+    function getFlowDirection(x, z) {
+      if (!exitDistField) return null;
+      const i = Math.floor((x - gridMinX) / GRID_RES);
+      const j = Math.floor((z - gridMinZ) / GRID_RES);
+      if (i < 0 || i >= gridStepsX || j < 0 || j >= gridStepsZ) return null;
+      const currDist = exitDistField[i + j * gridStepsX];
+      if (currDist < 0) return null;
+      if (currDist === 0) return { x: 0, z: 0, arrived: true };
+
+      let bestDist = currDist;
+      let bestDx = 0, bestDz = 0;
+      for (let di = -1; di <= 1; di++) {
+        for (let dj = -1; dj <= 1; dj++) {
+          if (di === 0 && dj === 0) continue;
+          const ni = i + di;
+          const nj = j + dj;
+          if (ni < 0 || ni >= gridStepsX || nj < 0 || nj >= gridStepsZ) continue;
+          const nd = exitDistField[ni + nj * gridStepsX];
+          if (nd < 0) continue;
+          if (nd < bestDist) {
+            bestDist = nd;
+            bestDx = di;
+            bestDz = dj;
+          }
+        }
+      }
+      if (bestDx === 0 && bestDz === 0) return null;
+      const len = Math.hypot(bestDx, bestDz);
+      return { x: bestDx / len, z: bestDz / len };
+    }
+
+    /* ---------- Techo invisible ---------- */
+    const altoParedes = Math.max(bbox.max.y, 2.8);
+    const ceilingGeo = new THREE.PlaneGeometry(floorWidth, floorDepth);
+    ceilingGeo.rotateX(Math.PI / 2);
+    const ceilingMat = new THREE.MeshStandardMaterial({
+      color:0x111111, transparent:true, opacity:0.0, side:THREE.DoubleSide, depthWrite:false
+    });
+    const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
+    ceiling.position.set(floorCenterX, altoParedes, floorCenterZ);
+    scene.add(ceiling);
+
+    /* ============================================================
+       SISTEMA DE COMPUTADORAS Y PUESTOS
+       ============================================================ */
+    const workstations = [];
+
+    function createWorkstation(x, z, rotationY = 0, roomId = 'salon-grande') {
+      const group = new THREE.Group();
+
+      // Mesa
+      const deskMat = new THREE.MeshStandardMaterial({ color: 0x2b303a, roughness: 0.5, metalness: 0.2 });
+      const deskGeo = new THREE.BoxGeometry(0.70, 0.05, 0.48);
+      const desk = new THREE.Mesh(deskGeo, deskMat);
+      desk.position.set(0, 0.7, 0);
+      desk.castShadow = true;
+      desk.receiveShadow = true;
+      group.add(desk);
+
+      // Patas
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x111115, metalness: 0.8, roughness: 0.3 });
+      const legGeo = new THREE.BoxGeometry(0.05, 0.7, 0.05);
+      [[-0.30, -0.20], [0.30, -0.20], [-0.30, 0.20], [0.30, 0.20]].forEach(([lx, lz]) => {
+        const leg = new THREE.Mesh(legGeo, legMat);
+        leg.position.set(lx, 0.35, lz);
+        leg.castShadow = true;
+        group.add(leg);
+      });
+
+      // Silla de Oficina
+      const chairMat = new THREE.MeshStandardMaterial({ color: 0x1e2229, roughness: 0.8 });
+      const seatGeo = new THREE.BoxGeometry(0.36, 0.05, 0.36);
+      const seat = new THREE.Mesh(seatGeo, chairMat);
+      seat.position.set(0, 0.45, 0.35);
+      seat.castShadow = true;
+      group.add(seat);
+
+      const backGeo = new THREE.BoxGeometry(0.36, 0.35, 0.05);
+      const back = new THREE.Mesh(backGeo, chairMat);
+      back.position.set(0, 0.65, 0.51);
+      back.castShadow = true;
+      group.add(back);
+
+      const baseLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.42, 8), legMat);
+      baseLeg.position.set(0, 0.21, 0.35);
+      group.add(baseLeg);
+
+      // Monitor
+      const monMat = new THREE.MeshStandardMaterial({ color: 0x0f1115, roughness: 0.4 });
+      const monBase = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.02, 0.15), monMat);
+      monBase.position.set(0, 0.74, -0.10);
+      group.add(monBase);
+
+      const monStand = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.03), monMat);
+      monStand.position.set(0, 0.83, -0.12);
+      group.add(monStand);
+
+      // Pantalla de computadora (encendida cyan/blue)
+      const screenGeo = new THREE.BoxGeometry(0.42, 0.28, 0.025);
+      const screenMat = new THREE.MeshStandardMaterial({
+        color: 0x00d2ff,
+        emissive: 0x0055aa,
+        emissiveIntensity: 0.7,
+        roughness: 0.2
+      });
+      const screen = new THREE.Mesh(screenGeo, screenMat);
+      screen.position.set(0, 0.94, -0.11);
+      screen.castShadow = true;
+      group.add(screen);
+
+      // Teclado
+      const kbMat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.6 });
+      const kb = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.015, 0.12), kbMat);
+      kb.position.set(0, 0.73, 0.08);
+      group.add(kb);
+
+      group.position.set(x, 0, z);
+      group.rotation.y = rotationY;
+      scene.add(group);
+
+      const seatLocalPos = new THREE.Vector3(0, 0, 0.35);
+      seatLocalPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationY);
+      const seatWorldPos = new THREE.Vector3(x + seatLocalPos.x, 0, z + seatLocalPos.z);
+
+      const ws = { group, screenMat, x, z, rotationY, seatPos: seatWorldPos, occupied: false, roomId };
+      workstations.push(ws);
+      return ws;
+    }
+
+    // 38 Puestos en Salón Grande (Room 0)
+    const colsGrande = [13.35, 14.20, 15.05, 15.90, 16.75, 17.60, 18.45, 19.30];
+    const colsGrande2 = [15.5, 16.35, 17.2, 18.05, 18.9, 19.75];
+    colsGrande.forEach(x => createWorkstation(x, -7.4, 0, 'salon-grande'));
+    colsGrande.forEach(x => createWorkstation(x, -8.6, Math.PI, 'salon-grande'));
+    colsGrande.forEach(x => createWorkstation(x, -10.2, 0, 'salon-grande'));
+    colsGrande.forEach(x => createWorkstation(x, -11.4, Math.PI, 'salon-grande'));
+    colsGrande2.forEach(x => createWorkstation(x, -12.8, 0, 'salon-grande'));
+
+    // 16 Puestos en Salón Pequeño (Room 2)
+    // Pared Norte
+    createWorkstation(1.10, -0.84, Math.PI, 'salon-pequeno');
+    createWorkstation(2.20, -0.84, Math.PI, 'salon-pequeno');
+    createWorkstation(3.30, -0.84, Math.PI, 'salon-pequeno');
+    // Pared Sur
+    createWorkstation(0.80, -8.06, 0, 'salon-pequeno');
+    createWorkstation(1.80, -8.06, 0, 'salon-pequeno');
+    createWorkstation(2.80, -8.06, 0, 'salon-pequeno');
+    // Pared Este
+    createWorkstation(3.30, -5.22, -Math.PI / 2, 'salon-pequeno');
+    createWorkstation(3.30, -4.45, -Math.PI / 2, 'salon-pequeno');
+    createWorkstation(3.30, -3.68, -Math.PI / 2, 'salon-pequeno');
+    createWorkstation(3.30, -2.91, -Math.PI / 2, 'salon-pequeno');
+    createWorkstation(3.30, -2.14, -Math.PI / 2, 'salon-pequeno');
+    // Pared Oeste
+    createWorkstation(0.70, -6.72, Math.PI / 2, 'salon-pequeno');
+    createWorkstation(0.70, -5.72, Math.PI / 2, 'salon-pequeno');
+    createWorkstation(0.70, -4.45, Math.PI / 2, 'salon-pequeno');
+    createWorkstation(0.70, -3.40, Math.PI / 2, 'salon-pequeno');
+    createWorkstation(0.70, -2.28, Math.PI / 2, 'salon-pequeno');
+
+    /* ============================================================
+       SISTEMA DE PERSONAS
+       ============================================================ */
+    const people = [];
+    const PERSON_COLORS = [
+      0x2266ff, 0xff8800, 0x22cc55, 0xee3333, 0x9933ff,
+      0x00cccc, 0xee0088, 0xffbb00, 0x3388ff, 0x00aa77
+    ];
+
+    let isPeopleVisible = true;
+    let isPeopleMoving  = true;
+    let evacuationMode  = true;
+    let peopleSpeedMultiplier = 1.2;
+    let deathCount = 0;
+
+    const elContadorMuertes      = document.getElementById('contador-muertes');
+    const elContadorMuertesMovil = document.getElementById('contador-muertes-movil');
+
+    function updateDeathCounter() {
+      if (elContadorMuertes)      elContadorMuertes.textContent      = deathCount;
+      if (elContadorMuertesMovil) elContadorMuertesMovil.textContent = deathCount;
+    }
+
+    const EXIT_ZONE_RADIUS = 1.0;
+
+    function isWalkable(x, z) {
+      if (!insideGrid || !isInsideRoomGeometry(x, z)) return false;
+      const i = Math.floor((x - gridMinX) / GRID_RES);
+      const j = Math.floor((z - gridMinZ) / GRID_RES);
+      if (i < 0 || i >= gridStepsX || j < 0 || j >= gridStepsZ) return false;
+      return insideGrid[i + j * gridStepsX] === 1;
+    }
+
+    function isNearExit(x, z) {
+      const dx = x - EXIT_GOAL_POS.x;
+      const dz = z - EXIT_GOAL_POS.z;
+      return (dx * dx + dz * dz) < EXIT_ZONE_RADIUS * EXIT_ZONE_RADIUS;
+    }
+
+    function getRandomWalkablePoint() {
+      if (walkableList.length > 0) {
+        for (let intento = 0; intento < 20; intento++) {
+          const pt = walkableList[Math.floor(Math.random() * walkableList.length)];
+          if (!isNearExit(pt.x, pt.z)) return pt;
+        }
+        return walkableList[Math.floor(Math.random() * walkableList.length)];
+      }
+      return { x: 7, z: -8 };
+    }
+
+    function getHeatAt(x, z) {
+      const cx = Math.floor((x - heatMinX) / heatCellW);
+      const cz = Math.floor((z - heatMinZ) / heatCellD);
+      if (cx < 0 || cx >= HEAT_COLS || cz < 0 || cz >= HEAT_ROWS) return 0;
+      return heatSmooth[cx + cz * HEAT_COLS];
+    }
+
+    function getSpeedFactorByHeat(x, z) {
+      const density = getHeatAt(x, z);
+      let t = density / DENSITY_MAX;
+      if (t > 1) t = 1;
+      if (t >= HEAT_SPEED_RED_T)    return 0.65;
+      if (t >= HEAT_SPEED_ORANGE_T) return 0.75;
+      if (t >= HEAT_SPEED_YELLOW_T) return 0.90;
+      return 1.0;
+    }
+
+    function snapToNearestWalkable(x, z) {
+      for (let r = 1; r <= 10; r++) {
+        for (let dx = -r; dx <= r; dx++) {
+          for (let dz = -r; dz <= r; dz++) {
+            if (Math.abs(dx) !== r && Math.abs(dz) !== r) continue;
+            const nx = x + dx * GRID_RES;
+            const nz = z + dz * GRID_RES;
+            if (isWalkable(nx, nz)) return { x: nx, z: nz };
+          }
+        }
+      }
+      return null;
+    }
+
+    /* ---------- MARCADOR DE MUERTE "X" ---------- */
+    let _deathMarkerTexture = null;
+    function getDeathMarkerTexture() {
+      if (_deathMarkerTexture) return _deathMarkerTexture;
+
+      const canvas = document.createElement('canvas');
+      canvas.width  = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 128, 128);
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 28;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(30, 30); ctx.lineTo(98, 98);
+      ctx.moveTo(98, 30); ctx.lineTo(30, 98);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ff0000';
+      ctx.lineWidth = 18;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(30, 30); ctx.lineTo(98, 98);
+      ctx.moveTo(98, 30); ctx.lineTo(30, 98);
+      ctx.stroke();
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.anisotropy = 8;
+      tex.needsUpdate = true;
+      _deathMarkerTexture = tex;
+      return tex;
+    }
+
+    function createDeathMarker() {
+      const mat = new THREE.SpriteMaterial({
+        map: getDeathMarkerTexture(),
+        transparent: true,
+        depthTest: true,
+        depthWrite: false
+      });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(0.55, 0.55, 1);
+      sprite.position.set(0, 1.75, 0);
+      return sprite;
+    }
+
+    /* ---------- MARCADOR DE ALERTA "!" ---------- */
+    let _alertMarkerTexture = null;
+    function getAlertMarkerTexture() {
+      if (_alertMarkerTexture) return _alertMarkerTexture;
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#ffaa00';
+      ctx.beginPath(); ctx.arc(64, 64, 52, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = '#ff2200';
+      ctx.beginPath(); ctx.arc(64, 64, 44, 0, Math.PI * 2); ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 68px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('!', 64, 62);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.anisotropy = 8;
+      tex.needsUpdate = true;
+      _alertMarkerTexture = tex;
+      return tex;
+    }
+
+    function createAlertMarker() {
+      const mat = new THREE.SpriteMaterial({
+        map: getAlertMarkerTexture(),
+        transparent: true,
+        depthTest: true,
+        depthWrite: false
+      });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(0.65, 0.65, 1);
+      sprite.position.set(0, 1.7, 0);
+      sprite.visible = false;
+      return sprite;
+    }
+
+    function triggerAlertPerson(p) {
+      if (p.isDead || p.state === 'evacuating') return;
+      // Comportamiento estilo V3: pasar directamente a evacuando
+      p.alerted = false;
+      if (p.alertMarker) p.alertMarker.visible = false;
+      p.state = 'evacuating';
+      p.reactionDelay = 0.1 + Math.random() * 0.3;
+      p.idleTime = 0;
+    }
+
+    function createPerson(x, z, color = 0x2266ff, workstation = null) {
+      const group = new THREE.Group();
+
+      const bodyGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.9, 12);
+      const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = 0.45;
+      body.castShadow = true;
+
+      const headGeo = new THREE.SphereGeometry(0.14, 12, 12);
+      const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.8 });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.position.y = 0.9 + 0.14;
+      head.castShadow = true;
+
+      group.add(body, head);
+
+      const alertMarker = createAlertMarker();
+      group.add(alertMarker);
+
+      let px = x, pz = z;
+      let rotY = Math.random() * Math.PI * 2;
+      let isSitting = false;
+
+      if (workstation) {
+        px = workstation.seatPos.x;
+        pz = workstation.seatPos.z;
+        rotY = workstation.rotationY + Math.PI;
+        isSitting = true;
+        workstation.occupied = true;
+      }
+
+      group.position.set(px, isSitting ? 0.25 : 0, pz);
+      group.rotation.y = rotY;
+      scene.add(group);
+
+      const personObj = {
+        mesh: group,
+        body: body,
+        head: head,
+        x: px,
+        z: pz,
+        workstation: workstation,
+        speed: 0.8 + Math.random() * 0.6,
+        animOffset: Math.random() * Math.PI * 2,
+        idleTime: 0,
+        stuckFrames: 0,
+        state: isSitting ? 'sitting' : 'wandering',
+        alerted: false,
+        reactionDelay: 0,
+        wanderAngle: rotY,
+        wanderTimer: 1.0 + Math.random() * 2.0,
+        dangerTimer: 0,
+        isDead: false,
+        deathMarker: null,
+        alertMarker: alertMarker
+      };
+
+      people.push(personObj);
+      return personObj;
+    }
+
+    function getRandomWalkablePointInRoom(roomObj) {
+      if (!walkableList || walkableList.length === 0) return { x: 15, z: -10 };
+      const candidates = walkableList.filter(pt =>
+        pt.x >= roomObj.minX && pt.x <= roomObj.maxX &&
+        pt.z >= roomObj.minZ && pt.z <= roomObj.maxZ &&
+        !isNearExit(pt.x, pt.z)
+      );
+      if (candidates.length > 0) {
+        return candidates[Math.floor(Math.random() * candidates.length)];
+      }
+      return { x: (roomObj.minX + roomObj.maxX) / 2, z: (roomObj.minZ + roomObj.maxZ) / 2 };
+    }
+
+    function clearPeople() {
+      people.forEach(p => scene.remove(p.mesh));
+      people.length = 0;
+    }
+
+    function spawnPeople(countGrande = null, countPequeno = null) {
+      const rngG = document.getElementById('rng-cant-grande');
+      const rngP = document.getElementById('rng-cant-pequeno');
+      if (countGrande === null) countGrande = parseInt(rngG ? rngG.value : 8);
+      if (countPequeno === null) countPequeno = parseInt(rngP ? rngP.value : 4);
+
+      clearPeople();
+      deathCount = 0;
+      updateDeathCounter();
+
+      workstations.forEach(ws => ws.occupied = false);
+
+      // Salón Grande (Max 38)
+      const wsGrande = workstations.filter(ws => ws.roomId === 'salon-grande');
+      const freeGrande = [...wsGrande].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < countGrande; i++) {
+        const color = PERSON_COLORS[i % PERSON_COLORS.length];
+        if (i < freeGrande.length) {
+          createPerson(freeGrande[i].seatPos.x, freeGrande[i].seatPos.z, color, freeGrande[i]);
+        } else {
+          const pt = getRandomWalkablePointInRoom(ROOMS[0]);
+          createPerson(pt.x, pt.z, color, null);
+        }
+      }
+
+      // Salón Pequeño (Max 16)
+      const wsPequeno = workstations.filter(ws => ws.roomId === 'salon-pequeno');
+      const freePequeno = [...wsPequeno].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < countPequeno; i++) {
+        const color = PERSON_COLORS[(i + countGrande) % PERSON_COLORS.length];
+        if (i < freePequeno.length) {
+          createPerson(freePequeno[i].seatPos.x, freePequeno[i].seatPos.z, color, freePequeno[i]);
+        } else {
+          const pt = getRandomWalkablePointInRoom(ROOMS[2]);
+          createPerson(pt.x, pt.z, color, null);
+        }
+      }
+
+      // No activar alarma global: las personas reaccionan solo al humo o al contagio
+      // (comportamiento tipo V3)
+    }
+
+    spawnPeople();
+    updateDeathCounter();
+
+    function removePerson(index) {
+      scene.remove(people[index].mesh);
+      people.splice(index, 1);
+    }
+
+    function killPerson(p) {
+      if (p.isDead) return;
+      p.isDead = true;
+      p.state = 'dead';
+      p.dangerTimer = DEATH_TIME_LIMIT;
+
+      p.body.material.color.setHex(0x000000);
+      p.head.material.color.setHex(0x000000);
+      p.body.material.roughness = 1.0;
+      p.head.material.roughness = 1.0;
+
+      p.body.position.y = 0.45;
+      p.head.position.y = 1.04;
+
+      if (!p.deathMarker) {
+        const marker = createDeathMarker();
+        p.mesh.add(marker);
+        p.deathMarker = marker;
+      }
+
+      deathCount++;
+      updateDeathCounter();
+    }
+
+    function updatePeople(delta, time) {
+      if (!isPeopleVisible) return;
+
+      /* ---------- CONTAGIO DE EVACUACIÓN ---------- */
+      if (evacuationMode) {
+        for (let i = 0; i < people.length; i++) {
+          const a = people[i];
+          if (a.isDead || a.state !== 'evacuating') continue;
+          for (let j = 0; j < people.length; j++) {
+            if (i === j) continue;
+            const b = people[j];
+            if (b.isDead || b.state === 'evacuating') continue;
+            const dx = a.x - b.x;
+            const dz = a.z - b.z;
+            if (dx * dx + dz * dz <= CONTAGION_RADIUS * CONTAGION_RADIUS) {
+              b.state = 'evacuating';
+              b.reactionDelay = 0.15 + Math.random() * 0.35;
+              b.idleTime = 0;
+              if (b.alertMarker) b.alertMarker.visible = false;
+            }
+          }
+        }
+      }
+
+      for (let i = people.length - 1; i >= 0; i--) {
+        const p = people[i];
+        p.mesh.visible = isPeopleVisible;
+
+        if (p.isDead) {
+          if (p.deathMarker) {
+            p.deathMarker.position.y = 1.75 + Math.sin(time * 2.0 + p.animOffset) * 0.06;
+          }
+          continue;
+        }
+
+        if (!isPeopleMoving) continue;
+
+        /* ---------- Temporizador de muerte por recinto ---------- */
+        const estadoRecinto = getRoomStatusAt(p.x, p.z);
+        if (estadoRecinto === 'Muy Peligroso' || estadoRecinto === 'Mortal') {
+          p.dangerTimer += delta * simSpeed;
+          if (p.dangerTimer >= DEATH_TIME_LIMIT) {
+            killPerson(p);
+            continue;
+          }
+        } else {
+          p.dangerTimer = 0;
+        }
+
+        const dangerFactor = getSpeedFactorByHeat(p.x, p.z);
+
+        /* ---------- Disparadores de evacuación ---------- */
+        if ((p.state === 'sitting' || p.state === 'wandering') && evacuationMode) {
+          const heat = getHeatAt(p.x, p.z);
+          const recintoPeligroso = (estadoRecinto === 'Peligroso' ||
+                                    estadoRecinto === 'Muy Peligroso' ||
+                                    estadoRecinto === 'Mortal');
+          if (heat >= HUMO_THRESHOLD || recintoPeligroso) {
+            if (p.reactionDelay <= 0) {
+              p.reactionDelay = 0.2 + Math.random() * 0.6;
+            }
+            p.reactionDelay -= delta * simSpeed;
+            if (p.reactionDelay <= 0) {
+              p.state = 'evacuating';
+              if (p.alertMarker) p.alertMarker.visible = false;
+            }
+          }
+        }
+
+        // ============================================
+        // ESTADO: SITTING (sentados en la computadora)
+        // ============================================
+        if (p.state === 'sitting') {
+          const typingAnim = Math.sin(time * 4.0 + p.animOffset);
+          p.body.position.y = 0.45 + typingAnim * 0.01;
+          p.head.position.y = 1.04 + typingAnim * 0.015;
+          p.mesh.position.set(p.x, 0.25, p.z);
+          continue;
+        }
+
+        // ============================================
+        // ESTADO: WANDERING
+        // ============================================
+        if (p.state === 'wandering') {
+          if (p.idleTime > 0) {
+            p.idleTime -= delta * simSpeed;
+            p.body.position.y = 0.45;
+            p.head.position.y = 1.04;
+            continue;
+          }
+
+          p.wanderTimer -= delta * simSpeed;
+          if (p.wanderTimer <= 0) {
+            p.wanderAngle = Math.random() * Math.PI * 2;
+            p.wanderTimer = 1.5 + Math.random() * 2.5;
+          }
+
+          let diff = p.wanderAngle - p.mesh.rotation.y;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          p.mesh.rotation.y += diff * 0.10;
+
+          const moveAngle = p.mesh.rotation.y;
+          const step = p.speed * peopleSpeedMultiplier * 0.65 *
+                       PERSON_BASE_SPEED_SCALE * dangerFactor * delta * simSpeed;
+          const nextX = p.x + Math.sin(moveAngle) * step;
+          const nextZ = p.z + Math.cos(moveAngle) * step;
+
+          if (isWalkable(nextX, nextZ) && !isNearExit(nextX, nextZ)) {
+            p.x = nextX;
+            p.z = nextZ;
+            p.mesh.position.set(p.x, 0, p.z);
+            p.stuckFrames = 0;
+
+            const walkCycle = Math.sin(time * 8 * p.speed + p.animOffset);
+            p.body.position.y = 0.45 + Math.abs(walkCycle) * 0.05;
+            p.head.position.y = 1.04 + Math.abs(walkCycle) * 0.05;
+          } else {
+            let found = false;
+            for (let intento = 0; intento < 10; intento++) {
+              const ang = Math.random() * Math.PI * 2;
+              const tx = p.x + Math.sin(ang) * step;
+              const tz = p.z + Math.cos(ang) * step;
+              if (isWalkable(tx, tz) && !isNearExit(tx, tz)) {
+                p.wanderAngle = ang;
+                p.wanderTimer = 1.5 + Math.random() * 2.5;
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              p.idleTime = 0.3 + Math.random() * 0.5;
+            }
+            p.stuckFrames++;
+            if (p.stuckFrames > 60) {
+              const snap = snapToNearestWalkable(p.x, p.z);
+              if (snap) {
+                p.x = snap.x;
+                p.z = snap.z;
+                p.mesh.position.set(p.x, 0, p.z);
+              }
+              p.stuckFrames = 0;
+            }
+          }
+          continue;
+        }
+
+        // ============================================
+        // ESTADO: EVACUATING
+        // ============================================
+        if (p.state === 'evacuating') {
+          if (p.idleTime > 0) {
+            p.idleTime -= delta * simSpeed;
+            p.body.position.y = 0.45;
+            p.head.position.y = 1.04;
+            continue;
+          }
+
+          const dir = getFlowDirection(p.x, p.z);
+
+          if (!dir) {
+            p.idleTime = 0.3 + Math.random() * 0.4;
+            if (!isWalkable(p.x, p.z)) {
+              const snap = snapToNearestWalkable(p.x, p.z);
+              if (snap) {
+                p.x = snap.x; p.z = snap.z;
+                p.mesh.position.set(p.x, 0, p.z);
+              }
+            }
+            continue;
+          }
+
+          if (dir.arrived) {
+            removePerson(i);
+            continue;
+          }
+
+          const targetAngle = Math.atan2(dir.x, dir.z);
+          let diff = targetAngle - p.mesh.rotation.y;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          p.mesh.rotation.y += diff * 0.15;
+
+          const step = p.speed * peopleSpeedMultiplier *
+                       PERSON_BASE_SPEED_SCALE * dangerFactor * delta * simSpeed;
+          const moveAngle = p.mesh.rotation.y;
+          const nextX = p.x + Math.sin(moveAngle) * step;
+          const nextZ = p.z + Math.cos(moveAngle) * step;
+
+          if (isWalkable(nextX, nextZ)) {
+            p.x = nextX; p.z = nextZ;
+            p.mesh.position.set(p.x, 0, p.z);
+            p.stuckFrames = 0;
+
+            const walkCycle = Math.sin(time * 10 * p.speed + p.animOffset);
+            p.body.position.y = 0.45 + Math.abs(walkCycle) * 0.05;
+            p.head.position.y = 1.04 + Math.abs(walkCycle) * 0.05;
+          } else {
+            const sx = p.x + dir.x * step;
+            const sz = p.z + dir.z * step;
+            if (isWalkable(sx, sz)) {
+              p.x = sx; p.z = sz;
+              p.mesh.position.set(p.x, 0, p.z);
+              p.stuckFrames = 0;
+            } else {
+              p.stuckFrames++;
+              if (p.stuckFrames > 25 && p.stuckFrames % 25 === 0) {
+                const a = Math.random() * Math.PI * 2;
+                const nx = p.x + Math.cos(a) * 0.5;
+                const nz = p.z + Math.sin(a) * 0.5;
+                if (isWalkable(nx, nz)) {
+                  p.x = nx; p.z = nz;
+                  p.mesh.position.set(p.x, 0, p.z);
+                }
+                p.stuckFrames = 0;
+              }
+            }
+          }
+          continue;
+        }
+      }
+    }
+
+    /* ---------- Motor de incendio ---------- */
+    function createFireSystem(x, z) {
+      const origin = new THREE.Vector3(x, 0.2, z);
+
+      const light = new THREE.PointLight(0xff4400, 0.3, 8, 2);
+      light.position.set(origin.x, 0.8, origin.z);
+      light.castShadow = !IS_MOBILE; // sin sombras de fuego en móvil
+      scene.add(light);
+
+      const flameCount = IS_MOBILE ? 80 : 150;
+      const flameGeo = new THREE.BufferGeometry();
+      const flamePos = new Float32Array(flameCount * 3);
+      const flameSpeeds = [];
+      for (let i = 0; i < flameCount; i++) {
+        flamePos[i*3]   = origin.x + (Math.random() - 0.5) * 0.5;
+        flamePos[i*3+1] = Math.random() * 1.0;
+        flamePos[i*3+2] = origin.z + (Math.random() - 0.5) * 0.5;
+        flameSpeeds.push(0.015 + Math.random() * 0.02);
+      }
+      flameGeo.setAttribute('position', new THREE.BufferAttribute(flamePos, 3));
+      const flameMat = new THREE.PointsMaterial({ color:0xff3700, size:0.23, transparent:true, opacity:0.8 });
+      const flames = new THREE.Points(flameGeo, flameMat);
+      flames.layers.set(1);
+      scene.add(flames);
+
+      const smokeGeo = new THREE.BufferGeometry();
+      const smokePos = new Float32Array(MAX_SMOKE * 3);
+      const smokeVel = [];
+      for (let i = 0; i < MAX_SMOKE; i++) {
+        smokePos[i*3]   = origin.x;
+        smokePos[i*3+1] = -9999;
+        smokePos[i*3+2] = origin.z;
+        const angle = Math.random() * Math.PI * 2;
+        const spreadSpeed = 0.014 + Math.random() * 0.028;
+        smokeVel.push({
+          vx: Math.cos(angle) * spreadSpeed,
+          vy: 0.010 + Math.random() * 0.014,
+          vz: Math.sin(angle) * spreadSpeed,
+          cooling: false,
+          cool: 0.00016 + Math.random() * 0.00020
+        });
+      }
+      smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePos, 3));
+
+      const smokeMat = new THREE.PointsMaterial({
+        color:0x1a1a1a, size:0.33, transparent:true, opacity:0.25, depthWrite:false
+      });
+      const smoke = new THREE.Points(smokeGeo, smokeMat);
+      smoke.visible = false;
+      smoke.frustumCulled = false;
+      smoke.layers.set(1);
+      scene.add(smoke);
+
+      const sArr = smokeGeo.attributes.position.array;
+      const fArr = flameGeo.attributes.position.array;
+      const accel = Math.pow(1.0015, SMOKE_STRIDE);
+      let phase = 0;
+
+      return {
+        origin, active:true, activeSmokeCount:0, spawnAccumulator:0, smokeArray:sArr,
+        toggle(state) {
+          this.active = state;
+          light.visible = state;
+          flames.visible = state;
+          if (!state && this.activeSmokeCount === 0) smoke.visible = false;
+        },
+        clearSmoke() {
+          for (let i = 0; i < MAX_SMOKE; i++) {
+            sArr[i*3] = 0; sArr[i*3+1] = -9999; sArr[i*3+2] = 0;
+            smokeVel[i].cooling = false;
+          }
+          smokeGeo.attributes.position.needsUpdate = true;
+          this.activeSmokeCount = 0;
+          this.spawnAccumulator = 0;
+          smoke.visible = false;
+        },
+        update(time) {
+          if (this.active) {
+            light.intensity = 0.2 + Math.sin(time*15*simSpeed + origin.x)*0.1 + Math.random()*0.1;
+            for (let i = 0; i < flameCount; i++) {
+              fArr[i*3+1] += flameSpeeds[i] * simSpeed;
+              if (fArr[i*3+1] > 1.0) {
+                fArr[i*3+1] = 0.1;
+                fArr[i*3]   = origin.x + (Math.random()-0.5)*0.5;
+                fArr[i*3+2] = origin.z + (Math.random()-0.5)*0.5;
+              }
+            }
+            flameGeo.attributes.position.needsUpdate = true;
+
+            if (isSmokeGenerating) {
+              this.spawnAccumulator += (1.5 * VELOCIDAD_HUMO) * simSpeed;
+              const n = Math.floor(this.spawnAccumulator);
+              this.spawnAccumulator -= n;
+              for (let s = 0; s < n; s++) {
+                if (this.activeSmokeCount < MAX_SMOKE) {
+                  const idx = this.activeSmokeCount * 3;
+                  sArr[idx]   = origin.x + (Math.random()-0.5)*0.5;
+                  sArr[idx+1] = SMOKE_SPAWN_Y;
+                  sArr[idx+2] = origin.z + (Math.random()-0.5)*0.5;
+                  smokeVel[this.activeSmokeCount].cooling = false;
+                  this.activeSmokeCount++;
+                }
+              }
+            }
+          }
+          smoke.visible = this.activeSmokeCount > 0;
+
+          const ceilingLimit = TECHO_HUMO;
+          phase = (phase + 1) % SMOKE_STRIDE;
+          const step = simSpeed * SMOKE_STRIDE * VELOCIDAD_HUMO;
+
+          for (let i = phase; i < this.activeSmokeCount; i += SMOKE_STRIDE) {
+            const idx = i * 3;
+            if (sArr[idx+1] > -100) {
+              let nextX = sArr[idx];
+              let nextZ = sArr[idx+2];
+              if (!smokeVel[i].cooling) {
+                sArr[idx+1] += smokeVel[i].vy * step;
+                nextX += (Math.random()-0.5) * 0.01 * step;
+                nextZ += (Math.random()-0.5) * 0.01 * step;
+                if (sArr[idx+1] >= ceilingLimit) {
+                  sArr[idx+1] = ceilingLimit;
+                  smokeVel[i].cooling = true;
+                }
+              } else {
+                smokeVel[i].vx = Math.max(-0.02, Math.min(0.02, smokeVel[i].vx * accel));
+                smokeVel[i].vz = Math.max(-0.02, Math.min(0.02, smokeVel[i].vz * accel));
+                nextX += smokeVel[i].vx * step;
+                nextZ += smokeVel[i].vz * step;
+                sArr[idx+1] -= smokeVel[i].cool * step;
+              }
+
+              const prevX = sArr[idx];
+              const prevZ = sArr[idx + 2];
+              let blocked = false;
+              if (collisionGrid) {
+                const gX = Math.floor((nextX - gridMinX) / GRID_RES);
+                const gZ = Math.floor((nextZ - gridMinZ) / GRID_RES);
+                if (gX >= 0 && gX < gridStepsX && gZ >= 0 && gZ < gridStepsZ) {
+                  if (collisionGrid[gX + gZ * gridStepsX] === 1) blocked = true;
+                }
+              }
+              if (!blocked && wouldHitBarrier(prevX, prevZ, nextX, nextZ)) blocked = true;
+
+              if (blocked) {
+                smokeVel[i].vx *= -0.5;
+                smokeVel[i].vz *= -0.5;
+                smokeVel[i].vx += (Math.random()-0.5)*0.02;
+                smokeVel[i].vz += (Math.random()-0.5)*0.02;
+                nextX = sArr[idx];
+                nextZ = sArr[idx+2];
+              }
+
+              sArr[idx]   = nextX;
+              sArr[idx+2] = nextZ;
+              if (sArr[idx+1] < SMOKE_FLOOR)  sArr[idx+1] = SMOKE_FLOOR;
+              if (sArr[idx+1] > ceilingLimit) sArr[idx+1] = ceilingLimit;
+            }
+          }
+          smokeGeo.attributes.position.needsUpdate = true;
+        }
+      };
+    }
+
+    const fires = [
+      createFireSystem(17, -11),
+      createFireSystem(9, -8),
+      createFireSystem(1, -5)
+    ];
+
+    fires.forEach(f => f.toggle(false));
+
+    document.getElementById('chk-foco1').addEventListener('change', e => fires[0].toggle(e.target.checked));
+    document.getElementById('chk-foco2').addEventListener('change', e => fires[1].toggle(e.target.checked));
+    document.getElementById('chk-foco3').addEventListener('change', e => fires[2].toggle(e.target.checked));
+    document.getElementById('btn-limpiar').addEventListener('click', () => fires.forEach(f => f.clearSmoke()));
+
+    const btnDetenerHumo = document.getElementById('btn-detener-humo');
+    btnDetenerHumo.addEventListener('click', () => {
+      isSmokeGenerating = !isSmokeGenerating;
+      if (isSmokeGenerating) {
+        btnDetenerHumo.innerText = "Detener Humo";
+        btnDetenerHumo.classList.remove("stopped");
+      } else {
+        btnDetenerHumo.innerText = "Reanudar Humo";
+        btnDetenerHumo.classList.add("stopped");
+      }
+    });
+
+    /* ---------- Eventos de UI ---------- */
+    const chkPersonas = document.getElementById('chk-personas');
+    const chkMovimiento = document.getElementById('chk-movimiento');
+    const chkEvacuacion = document.getElementById('chk-evacuacion');
+    const chkVentanas = document.getElementById('chk-ventanas');
+    const rngGrande = document.getElementById('rng-cant-grande');
+    const lblGrande = document.getElementById('lbl-cant-grande');
+    const rngPequeno = document.getElementById('rng-cant-pequeno');
+    const lblPequeno = document.getElementById('lbl-cant-pequeno');
+    const rngVel = document.getElementById('rng-personas-vel');
+    const lblVel = document.getElementById('lbl-personas-vel');
+    const btnResetPersonas = document.getElementById('btn-reset-personas');
+
+    if (chkPersonas) {
+      chkPersonas.addEventListener('change', (e) => {
+        isPeopleVisible = e.target.checked;
+        people.forEach(p => p.mesh.visible = isPeopleVisible);
+      });
+    }
+
+    if (chkMovimiento) {
+      chkMovimiento.addEventListener('change', (e) => {
+        isPeopleMoving = e.target.checked;
+      });
+    }
+
+    if (chkEvacuacion) {
+      chkEvacuacion.addEventListener('change', (e) => {
+        evacuationMode = e.target.checked;
+        people.forEach(p => {
+          if (p.isDead) return;
+          p.state = 'wandering';
+          p.reactionDelay = 0;
+          if (evacuationMode) {
+            p.wanderAngle = Math.random() * Math.PI * 2;
+            p.wanderTimer = 1.0 + Math.random() * 2.0;
+          }
+        });
+      });
+    }
+
+    if (chkVentanas) {
+      chkVentanas.addEventListener('change', (e) => {
+        windowsOpen = e.target.checked;
+      });
+    }
+
+    if (rngGrande) {
+      rngGrande.addEventListener('input', (e) => {
+        const c = parseInt(e.target.value);
+        if (lblGrande) lblGrande.textContent = c;
+        spawnPeople(c, parseInt(rngPequeno ? rngPequeno.value : 4));
+      });
+    }
+
+    if (rngPequeno) {
+      rngPequeno.addEventListener('input', (e) => {
+        const c = parseInt(e.target.value);
+        if (lblPequeno) lblPequeno.textContent = c;
+        spawnPeople(parseInt(rngGrande ? rngGrande.value : 8), c);
+      });
+    }
+
+    if (rngVel) {
+      rngVel.addEventListener('input', (e) => {
+        peopleSpeedMultiplier = parseFloat(e.target.value);
+        if (lblVel) lblVel.textContent = peopleSpeedMultiplier.toFixed(1) + 'x';
+      });
+    }
+
+    if (btnResetPersonas) {
+      btnResetPersonas.addEventListener('click', () => {
+        const cG = parseInt(rngGrande ? rngGrande.value : 8);
+        const cP = parseInt(rngPequeno ? rngPequeno.value : 4);
+        spawnPeople(cG, cP);
+      });
+    }
+
+    /* ---------- Mapa de calor ---------- */
+    const colorGreen  = new THREE.Color(0xa8e6a8);
+    const colorYellow = new THREE.Color(0xffeb3b);
+    const colorRed    = new THREE.Color(0xf44336);
+    const tempColor   = new THREE.Color();
+
+    const floorPositions = floorGeo.attributes.position.array;
+    const floorColors    = floorGeo.attributes.color.array;
+
+    const HEAT_COLS = 80, HEAT_ROWS = 80, DENSITY_MAX = 15;
+    const heatDensity = new Float32Array(HEAT_COLS * HEAT_ROWS);
+    const heatSmooth  = new Float32Array(HEAT_COLS * HEAT_ROWS);
+    const heatMinX  = floorCenterX - floorWidth / 2;
+    const heatMinZ  = floorCenterZ - floorDepth / 2;
+    const heatCellW = floorWidth  / HEAT_COLS;
+    const heatCellD = floorDepth  / HEAT_ROWS;
+
+    function computeDensity() {
+      heatDensity.fill(0);
+      for (let f = 0; f < fires.length; f++) {
+        const fire = fires[f];
+        if (!fire.active && fire.activeSmokeCount === 0) continue;
+        const sArr = fire.smokeArray;
+        const count = fire.activeSmokeCount;
+        for (let i = 0; i < count; i++) {
+          const idx = i * 3;
+          const px = sArr[idx], pz = sArr[idx+2];
+          if (px < heatMinX || px >= heatMinX + floorWidth)  continue;
+          if (pz < heatMinZ || pz >= heatMinZ + floorDepth)  continue;
+          const cx = ((px - heatMinX) / heatCellW) | 0;
+          const cz = ((pz - heatMinZ) / heatCellD) | 0;
+          if (cx >= 0 && cx < HEAT_COLS && cz >= 0 && cz < HEAT_ROWS)
+            heatDensity[cx + cz * HEAT_COLS]++;
+        }
+      }
+      for (let z = 1; z < HEAT_ROWS - 1; z++)
+        for (let x = 1; x < HEAT_COLS - 1; x++) {
+          const i = x + z * HEAT_COLS;
+          heatSmooth[i] = (heatDensity[i]*4 +
+            heatDensity[i-1] + heatDensity[i+1] +
+            heatDensity[i-HEAT_COLS] + heatDensity[i+HEAT_COLS]) / 8;
+        }
+      for (let x = 0; x < HEAT_COLS; x++) {
+        heatSmooth[x] = heatDensity[x];
+        heatSmooth[x + (HEAT_ROWS-1)*HEAT_COLS] = heatDensity[x + (HEAT_ROWS-1)*HEAT_COLS];
+      }
+      for (let z = 0; z < HEAT_ROWS; z++) {
+        heatSmooth[z*HEAT_COLS] = heatDensity[z*HEAT_COLS];
+        heatSmooth[(HEAT_COLS-1) + z*HEAT_COLS] = heatDensity[(HEAT_COLS-1) + z*HEAT_COLS];
+      }
+    }
+
+    function updateHeatmap() {
+      for (let i = 0; i < vertexCount; i++) {
+        const vx = floorPositions[i*3];
+        const vz = floorPositions[i*3+2];
+        let cx = ((vx - heatMinX) / heatCellW) | 0;
+        let cz = ((vz - heatMinZ) / heatCellD) | 0;
+        if (cx < 0) cx = 0; else if (cx >= HEAT_COLS) cx = HEAT_COLS - 1;
+        if (cz < 0) cz = 0; else if (cz >= HEAT_ROWS) cz = HEAT_ROWS - 1;
+        const density = heatSmooth[cx + cz * HEAT_COLS];
+        let t = density / DENSITY_MAX; if (t > 1) t = 1;
+        if (t > 0.5) {
+          const u = (t - 0.5) * 2.0;
+          tempColor.lerpColors(colorYellow, colorRed, u);
+        } else {
+          const u = t * 2.0;
+          tempColor.lerpColors(colorGreen, colorYellow, u);
+        }
+        floorColors[i*3]   = tempColor.r * HEATMAP_INTENSITY;
+        floorColors[i*3+1] = tempColor.g * HEATMAP_INTENSITY;
+        floorColors[i*3+2] = tempColor.b * HEATMAP_INTENSITY;
+      }
+      floorGeo.attributes.color.needsUpdate = true;
+    }
+
+    function updateRoomStatus() {
+      for (let r = 0; r < ROOMS.length; r++) {
+        const room = ROOMS[r];
+        let cx0 = Math.max(0, Math.floor((room.minX - heatMinX) / heatCellW));
+        let cx1 = Math.min(HEAT_COLS, Math.ceil((room.maxX - heatMinX) / heatCellW));
+        let cz0 = Math.max(0, Math.floor((room.minZ - heatMinZ) / heatCellD));
+        let cz1 = Math.min(HEAT_ROWS, Math.ceil((room.maxZ - heatMinZ) / heatCellD));
+        if (cx1 <= cx0 || cz1 <= cz0) continue;
+
+        let greenCount = 0, yellowCount = 0, redCount = 0, total = 0, totalDensity = 0;
+        for (let z = cz0; z < cz1; z++)
+          for (let x = cx0; x < cx1; x++) {
+            const density = heatSmooth[x + z * HEAT_COLS];
+            let t = density / DENSITY_MAX; if (t > 1) t = 1;
+            totalDensity += density;
+            if (t >= ROOM_RED_T)         redCount++;
+            else if (t >= ROOM_YELLOW_T) yellowCount++;
+            else                         greenCount++;
+            total++;
+          }
+
+        let estado = 'Normal';
+        if (total > 0) {
+          const redPct  = redCount / total;
+          const warmPct = (yellowCount + redCount) / total;
+          const avgDens = totalDensity / total;
+
+          const limiteRedPct    = room.redPct     || ROOM_RED_PCT;
+          const limiteMortal    = room.avgMortal  || ROOM_AVG_MORTAL;
+          const limiteVdRedPct  = room.vdRedPct   || ROOM_VD_RED_PCT;
+          const limiteVdWarmPct = room.vdWarmPct  || ROOM_VD_WARM_PCT;
+          const limiteVDanger   = room.avgVDanger || ROOM_AVG_VDANGER;
+          const limiteWarmPct   = room.warmPct    || ROOM_WARM_PCT;
+          const limitePeligro   = room.avgDanger  || ROOM_AVG_DANGER;
+
+          if (redPct >= limiteRedPct || avgDens >= limiteMortal) estado = 'Mortal';
+          else if (redPct >= limiteVdRedPct || warmPct >= limiteVdWarmPct || avgDens >= limiteVDanger)
+            estado = 'Muy Peligroso';
+          else if (warmPct >= limiteWarmPct || avgDens >= limitePeligro)
+            estado = 'Peligroso';
+        }
+
+        room.estado = estado;
+
+        const el = document.getElementById(room.id);
+        if (el) {
+          if (el.textContent !== estado) el.textContent = estado;
+          const cls = 'estado-' + estado.toLowerCase().replace(/\s+/g, '-');
+          if (el.className !== cls) el.className = cls;
+        }
+      }
+    }
+
+    /* ---------- Loop principal ---------- */
+    const clock = new THREE.Clock();
+    let frameCounter = 0, roomFrameCounter = 0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = Math.min(clock.getDelta(), 0.1);
+      const time  = clock.elapsedTime;
+
+      for (let i = 0; i < fires.length; i++) fires[i].update(time);
+      updatePeople(delta, time);
+
+      if (frameCounter % HEATMAP_EVERY === 0) { computeDensity(); updateHeatmap(); }
+      frameCounter++;
+
+      if (roomFrameCounter % ROOM_STATUS_EVERY === 0) updateRoomStatus();
+      roomFrameCounter++;
+
+      controls.update();
+
+      renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+      renderer.setScissorTest(false);
+      renderer.render(scene, camera);
+
+      const marco = document.getElementById('minimapa-marco');
+      const rect = marco.getBoundingClientRect();
+      if (rect.width > 4 && rect.height > 4) {
+        const mapY = window.innerHeight - rect.bottom;
+        renderer.setViewport(rect.left, mapY, rect.width, rect.height);
+        renderer.setScissor(rect.left, mapY, rect.width, rect.height);
+        renderer.setScissorTest(true);
+
+        const bgOriginal = scene.background;
+        scene.background = new THREE.Color(0x1a1a1a);
+        renderer.render(scene, mapCamera);
+        scene.background = bgOriginal;
+
+        renderer.setScissorTest(false);
+      }
+    }
+    animate();
+
+    /* ---------- Resize ---------- */
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', () => {
+      // Pequeño delay: algunos navegadores móviles tardan en actualizar las dimensiones
+      setTimeout(onResize, 250);
+    });
+
+    // Cerrar menú con tecla Escape (útil en tablet con teclado)
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') toggleMenu(false);
+    });
+  </script>
+</body>
+</html>
