@@ -257,9 +257,9 @@
   <div id="ui">
     <strong>Focos de Incendio</strong>
     <div class="control-group">
-      <label><input type="checkbox" id="chk-foco1"> Salón grande</label>
+      <label><input type="checkbox" id="chk-foco1"> Laboratorio Rojo</label>
       <label><input type="checkbox" id="chk-foco2"> Pasillo</label>
-      <label><input type="checkbox" id="chk-foco3"> Salón pequeño</label>
+      <label><input type="checkbox" id="chk-foco3"> Laboratorio Verde</label>
     </div>
     <hr>
     <strong>Velocidad de Simulación</strong>
@@ -283,15 +283,27 @@
       <label><input type="checkbox" id="chk-evacuacion" checked> Evacuar al detectar humo</label>
       <div style="margin-top: 8px;">
         <label style="display:flex; justify-content:space-between; margin-bottom: 2px;">
-          <span>Salón Grande (Max 38):</span> <span id="lbl-cant-grande">8</span>
+          <span>Laboratorio Rojo (Max 38):</span> <span id="lbl-cant-rojo">8</span>
         </label>
-        <input type="range" id="rng-cant-grande" min="0" max="38" value="8" style="width: 100%;">
+        <input type="range" id="rng-cant-rojo" min="0" max="38" value="8" style="width: 100%;">
       </div>
       <div style="margin-top: 8px;">
         <label style="display:flex; justify-content:space-between; margin-bottom: 2px;">
-          <span>Salón Pequeño (Max 16):</span> <span id="lbl-cant-pequeno">4</span>
+          <span>Laboratorio Verde (Max 16):</span> <span id="lbl-cant-verde">4</span>
         </label>
-        <input type="range" id="rng-cant-pequeno" min="0" max="16" value="4" style="width: 100%;">
+        <input type="range" id="rng-cant-verde" min="0" max="16" value="4" style="width: 100%;">
+      </div>
+      <div style="margin-top: 8px;">
+        <label style="display:flex; justify-content:space-between; margin-bottom: 2px;">
+          <span>Laboratorio Naranja (Max 11):</span> <span id="lbl-cant-naranja">4</span>
+        </label>
+        <input type="range" id="rng-cant-naranja" min="0" max="11" value="4" style="width: 100%;">
+      </div>
+      <div style="margin-top: 8px;">
+        <label style="display:flex; justify-content:space-between; margin-bottom: 2px;">
+          <span>Laboratorio Azul (Max 47):</span> <span id="lbl-cant-azul">4</span>
+        </label>
+        <input type="range" id="rng-cant-azul" min="0" max="47" value="4" style="width: 100%;">
       </div>
       <div style="margin-top: 8px;">
         <label style="display:flex; justify-content:space-between; margin-bottom: 2px;">
@@ -321,9 +333,11 @@
         <tr><th>Ubicación</th><th>Seguridad</th></tr>
       </thead>
       <tbody>
-        <tr><td>Salón grande</td>  <td id="estado-salon-grande"  class="estado-normal">Normal</td></tr>
+        <tr><td>Laboratorio Rojo</td>   <td id="estado-rojo"  class="estado-normal">Normal</td></tr>
         <tr><td>Pasillo</td>       <td id="estado-pasillo"       class="estado-normal">Normal</td></tr>
-        <tr><td>Salón pequeño</td> <td id="estado-salon-pequeno" class="estado-normal">Normal</td></tr>
+        <tr><td>Laboratorio Verde</td>  <td id="estado-verde" class="estado-normal">Normal</td></tr>
+        <tr><td>Laboratorio Naranja</td> <td id="estado-naranja" class="estado-normal">Normal</td></tr>
+        <tr><td>Laboratorio Azul</td>    <td id="estado-azul" class="estado-normal">Normal</td></tr>
       </tbody>
     </table>
   </div>
@@ -411,13 +425,15 @@
     const PADDING_CELDAS = 1;
 
     const ROOMS = [
-      { id:'estado-salon-grande',  name:'Salón grande', minX:12, maxX:22, minZ:-16, maxZ:-6 },
+      { id:'estado-rojo',  name:'Laboratorio Rojo', minX:12, maxX:22, minZ:-16, maxZ:-6 },
       { id:'estado-pasillo',       name:'Pasillo',
         minX:5, maxX:13, minZ:-12, maxZ:-4,
         redPct:0.12, avgMortal:6,
         vdRedPct:0.06, vdWarmPct:0.20, avgVDanger:3.5,
         warmPct:0.06, avgDanger:1.2 },
-      { id:'estado-salon-pequeno', name:'Salón pequeño', minX:-3, maxX:5, minZ:-9, maxZ:-1 }
+      { id:'estado-verde', name:'Laboratorio Verde', minX:-3, maxX:5, minZ:-9, maxZ:-1 },
+      { id:'estado-naranja',         name:'Laboratorio Naranja', minX:0.3, maxX:3.9, minZ:-15.7, maxZ:-8.5 },
+      { id:'estado-azul',         name:'Laboratorio Azul', minX:3.6, maxX:14.5, minZ:-15.7, maxZ:-8.4 }
     ];
     ROOMS.forEach(r => r.estado = 'Normal');
 
@@ -654,7 +670,11 @@
       { minX: 5.8,  maxX: 12.8, minZ: -8.3,  maxZ: -6.6, roomIdx: 1 },
       { minX: -0.1, maxX: 5.3,  minZ: -8.7,  maxZ: -0.2, roomIdx: 2 },
       { minX: 12.8, maxX: 13.3, minZ: -8.3,  maxZ: -6.7, roomIdx: 0 },
-      { minX: 5.2,  maxX: 5.8,  minZ: -8.3,  maxZ: -6.6, roomIdx: 2 }
+      { minX: 5.2,  maxX: 5.8,  minZ: -8.3,  maxZ: -6.6, roomIdx: 2 },
+      { minX: 0.4,  maxX: 3.9,  minZ: -15.6, maxZ: -8.5, roomIdx: 3 },
+      { minX: 3.6,  maxX: 11.9, minZ: -12.5, maxZ: -8.5, roomIdx: 4 },
+      { minX: 3.6,  maxX: 14.4, minZ: -15.6, maxZ: -12.5, roomIdx: 4 },
+      { minX: 8.4,  maxX: 9.9,  minZ: -9.0,  maxZ: -6.6, roomIdx: 4 }
     ];
 
     function isInsideRoomGeometry(x, z) {
@@ -684,7 +704,9 @@
       const seeds = [
         { x: 17, z: -11 },
         { x: 9,  z: -8  },
-        { x: 1,  z: -5  }
+        { x: 1,  z: -5  },
+        { x: 2,  z: -12 },
+        { x: 8,  z: -13 }
       ];
 
       const queue = [];
@@ -875,7 +897,7 @@
        ============================================================ */
     const workstations = [];
 
-    function createWorkstation(x, z, rotationY = 0, roomId = 'salon-grande') {
+    function createWorkstation(x, z, rotationY = 0, roomId = 'rojo') {
       const group = new THREE.Group();
 
       // Mesa
@@ -957,36 +979,62 @@
       return ws;
     }
 
-    // 38 Puestos en Salón Grande (Room 0)
-    const colsGrande = [13.35, 14.20, 15.05, 15.90, 16.75, 17.60, 18.45, 19.30];
-    const colsGrande2 = [15.5, 16.35, 17.2, 18.05, 18.9, 19.75];
-    colsGrande.forEach(x => createWorkstation(x, -7.4, 0, 'salon-grande'));
-    colsGrande.forEach(x => createWorkstation(x, -8.6, Math.PI, 'salon-grande'));
-    colsGrande.forEach(x => createWorkstation(x, -10.2, 0, 'salon-grande'));
-    colsGrande.forEach(x => createWorkstation(x, -11.4, Math.PI, 'salon-grande'));
-    colsGrande2.forEach(x => createWorkstation(x, -12.8, 0, 'salon-grande'));
+    // 38 Puestos en Laboratorio Rojo (Room 0)
+    const colsRojo = [13.35, 14.20, 15.05, 15.90, 16.75, 17.60, 18.45, 19.30];
+    const colsRojo2 = [15.5, 16.35, 17.2, 18.05, 18.9, 19.75];
+    colsRojo.forEach(x => createWorkstation(x, -7.4, 0, 'rojo'));
+    colsRojo.forEach(x => createWorkstation(x, -8.6, Math.PI, 'rojo'));
+    colsRojo.forEach(x => createWorkstation(x, -10.2, 0, 'rojo'));
+    colsRojo.forEach(x => createWorkstation(x, -11.4, Math.PI, 'rojo'));
+    colsRojo2.forEach(x => createWorkstation(x, -12.8, 0, 'rojo'));
 
-    // 16 Puestos en Salón Pequeño (Room 2)
+    // 16 Puestos en Laboratorio Verde (Room 2)
     // Pared Norte
-    createWorkstation(1.10, -0.84, Math.PI, 'salon-pequeno');
-    createWorkstation(2.20, -0.84, Math.PI, 'salon-pequeno');
-    createWorkstation(3.30, -0.84, Math.PI, 'salon-pequeno');
+    createWorkstation(1.10, -0.84, Math.PI, 'verde');
+    createWorkstation(2.20, -0.84, Math.PI, 'verde');
+    createWorkstation(3.30, -0.84, Math.PI, 'verde');
     // Pared Sur
-    createWorkstation(0.80, -8.06, 0, 'salon-pequeno');
-    createWorkstation(1.80, -8.06, 0, 'salon-pequeno');
-    createWorkstation(2.80, -8.06, 0, 'salon-pequeno');
+    createWorkstation(0.80, -8.06, 0, 'verde');
+    createWorkstation(1.80, -8.06, 0, 'verde');
+    createWorkstation(2.80, -8.06, 0, 'verde');
     // Pared Este
-    createWorkstation(3.30, -5.22, -Math.PI / 2, 'salon-pequeno');
-    createWorkstation(3.30, -4.45, -Math.PI / 2, 'salon-pequeno');
-    createWorkstation(3.30, -3.68, -Math.PI / 2, 'salon-pequeno');
-    createWorkstation(3.30, -2.91, -Math.PI / 2, 'salon-pequeno');
-    createWorkstation(3.30, -2.14, -Math.PI / 2, 'salon-pequeno');
+    createWorkstation(3.30, -5.22, -Math.PI / 2, 'verde');
+    createWorkstation(3.30, -4.45, -Math.PI / 2, 'verde');
+    createWorkstation(3.30, -3.68, -Math.PI / 2, 'verde');
+    createWorkstation(3.30, -2.91, -Math.PI / 2, 'verde');
+    createWorkstation(3.30, -2.14, -Math.PI / 2, 'verde');
     // Pared Oeste
-    createWorkstation(0.70, -6.72, Math.PI / 2, 'salon-pequeno');
-    createWorkstation(0.70, -5.72, Math.PI / 2, 'salon-pequeno');
-    createWorkstation(0.70, -4.45, Math.PI / 2, 'salon-pequeno');
-    createWorkstation(0.70, -3.40, Math.PI / 2, 'salon-pequeno');
-    createWorkstation(0.70, -2.28, Math.PI / 2, 'salon-pequeno');
+    createWorkstation(0.70, -6.72, Math.PI / 2, 'verde');
+    createWorkstation(0.70, -5.72, Math.PI / 2, 'verde');
+    createWorkstation(0.70, -4.45, Math.PI / 2, 'verde');
+    createWorkstation(0.70, -3.40, Math.PI / 2, 'verde');
+    createWorkstation(0.70, -2.28, Math.PI / 2, 'verde');
+
+    // 12 Puestos en Laboratorio Naranja
+    // Dos filas a lo largo de las paredes Oeste y Este
+    const rowsNaranja = [-9.60, -10.60, -11.60, -12.60, -13.60, -14.60];
+    const rowsNaranja2 = [ -10.60, -11.60, -12.60, -13.60, -14.60];
+    rowsNaranja.forEach(z => createWorkstation(0.80, z,  Math.PI / 2, 'naranja'));
+    rowsNaranja2.forEach(z => createWorkstation(3.20, z, -Math.PI / 2, 'naranja'));
+
+    // Puestos en Laboratorio Azul: muchas filas apiladas en X,
+    // todas mirando hacia el Este (hacia el Laboratorio Rojo).
+    const ROT_AZUL = -Math.PI / 2;
+    const filasAzul = {
+      '4.45':  [ -10.05, -11.05, -12.05, -13.05, -14.05, -15.05],
+      '5.55':  [-10.05, -11.05, -12.05, -13.05, -14.05, -15.05],
+      '6.65':  [-10.05, -11.05, -12.05, -13.05, -14.05, -15.05],
+      '7.75':  [-10.05, -11.05, -12.05, -13.05, -14.05, -15.05],
+      '8.85':  [-10.05, -11.05, -12.05, -13.05, -14.05, -15.05],
+      '9.95':  [-10.05, -11.05, -12.05, -13.05, -14.05, -15.05],
+      '11.05': [-11.05, -12.05, -13.05, -14.05, -15.05],
+      '12.15': [-13.05, -14.05, -15.05],
+      '13.25': [-13.05, -14.05, -15.05]
+    };
+    Object.keys(filasAzul).forEach(xStr => {
+      const x = parseFloat(xStr);
+      filasAzul[xStr].forEach(z => createWorkstation(x, z, ROT_AZUL, 'azul'));
+    });
 
     /* ============================================================
        SISTEMA DE PERSONAS
@@ -1248,46 +1296,95 @@
       people.length = 0;
     }
 
-    function spawnPeople(countGrande = null, countPequeno = null) {
-      const rngG = document.getElementById('rng-cant-grande');
-      const rngP = document.getElementById('rng-cant-pequeno');
-      if (countGrande === null) countGrande = parseInt(rngG ? rngG.value : 8);
-      if (countPequeno === null) countPequeno = parseInt(rngP ? rngP.value : 4);
+    const SPAWN_ROOMS = [
+      { key: 'rojo',  roomIdx: 0, slider: 'rng-cant-rojo',  defaultCount: 8 },
+      { key: 'verde', roomIdx: 2, slider: 'rng-cant-verde', defaultCount: 4 },
+      { key: 'naranja',         roomIdx: 3, slider: 'rng-cant-naranja',    defaultCount: 4 },
+      { key: 'azul',         roomIdx: 4, slider: 'rng-cant-azul',    defaultCount: 4 }
+    ];
 
+    function readSliderCount(def) {
+      const el = document.getElementById(def.slider);
+      return el ? parseInt(el.value) : def.defaultCount;
+    }
+
+    // Ajusta la sala `def` hasta `targetCount` personas SIN reubicar a las que
+    // ya existen: si sobran, elimina las últimas; si faltan, agrega nuevas.
+    function populateRoom(def, targetCount, colorOffset) {
+      const current = people.filter(p => p.roomKey === def.key);
+
+      if (current.length === targetCount) return;
+
+      if (current.length > targetCount) {
+        const toRemove = current.slice(targetCount);
+        toRemove.forEach(p => {
+          scene.remove(p.mesh);
+          const idx = people.indexOf(p);
+          if (idx >= 0) people.splice(idx, 1);
+          if (p.workstation) p.workstation.occupied = false;
+        });
+        return;
+      }
+
+      // Faltan personas: agregarlas en los puestos que quedaron libres.
+      const wss = workstations.filter(ws => ws.roomId === def.key);
+      const free = wss.filter(ws => !ws.occupied);
+      for (let i = free.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [free[i], free[j]] = [free[j], free[i]];
+      }
+      const need = targetCount - current.length;
+      for (let i = 0; i < need; i++) {
+        const color = PERSON_COLORS[(current.length + i + colorOffset) % PERSON_COLORS.length];
+        let p;
+        if (i < free.length) {
+          p = createPerson(free[i].seatPos.x, free[i].seatPos.z, color, free[i]);
+        } else {
+          const pt = getRandomWalkablePointInRoom(ROOMS[def.roomIdx]);
+          p = createPerson(pt.x, pt.z, color, null);
+        }
+        p.roomKey = def.key;
+      }
+    }
+
+    function refreshDeathCount() {
+      deathCount = people.filter(p => p.isDead).length;
+      updateDeathCounter();
+    }
+
+    // Cambia la cantidad de personas de UNA sola sala (deja intactas las demás).
+    function spawnRoom(key, count) {
+      const def = SPAWN_ROOMS.find(d => d.key === key);
+      if (!def) return;
+      if (count === null || count === undefined) count = readSliderCount(def);
+      let offset = 0;
+      for (const d of SPAWN_ROOMS) {
+        if (d.key === key) break;
+        offset += readSliderCount(d);
+      }
+      populateRoom(def, count, offset);
+      refreshDeathCount();
+    }
+
+    // Repuebla TODAS las salas (carga inicial y botón de reinicio).
+    function spawnPeople(countRojo = null, countVerde = null, countNaranja = null, countAzul = null) {
+      const counts = {
+        'rojo': countRojo,
+        'verde': countVerde,
+        'naranja': countNaranja,
+        'azul': countAzul
+      };
       clearPeople();
+      workstations.forEach(ws => ws.occupied = false);
+      let offset = 0;
+      for (const def of SPAWN_ROOMS) {
+        let c = counts[def.key];
+        if (c === null || c === undefined) c = readSliderCount(def);
+        populateRoom(def, c, offset);
+        offset += c;
+      }
       deathCount = 0;
       updateDeathCounter();
-
-      workstations.forEach(ws => ws.occupied = false);
-
-      // Salón Grande (Max 38)
-      const wsGrande = workstations.filter(ws => ws.roomId === 'salon-grande');
-      const freeGrande = [...wsGrande].sort(() => Math.random() - 0.5);
-      for (let i = 0; i < countGrande; i++) {
-        const color = PERSON_COLORS[i % PERSON_COLORS.length];
-        if (i < freeGrande.length) {
-          createPerson(freeGrande[i].seatPos.x, freeGrande[i].seatPos.z, color, freeGrande[i]);
-        } else {
-          const pt = getRandomWalkablePointInRoom(ROOMS[0]);
-          createPerson(pt.x, pt.z, color, null);
-        }
-      }
-
-      // Salón Pequeño (Max 16)
-      const wsPequeno = workstations.filter(ws => ws.roomId === 'salon-pequeno');
-      const freePequeno = [...wsPequeno].sort(() => Math.random() - 0.5);
-      for (let i = 0; i < countPequeno; i++) {
-        const color = PERSON_COLORS[(i + countGrande) % PERSON_COLORS.length];
-        if (i < freePequeno.length) {
-          createPerson(freePequeno[i].seatPos.x, freePequeno[i].seatPos.z, color, freePequeno[i]);
-        } else {
-          const pt = getRandomWalkablePointInRoom(ROOMS[2]);
-          createPerson(pt.x, pt.z, color, null);
-        }
-      }
-
-      // No activar alarma global: las personas reaccionan solo al humo o al contagio
-      // (comportamiento tipo V3)
     }
 
     spawnPeople();
@@ -1739,10 +1836,14 @@
     const chkMovimiento = document.getElementById('chk-movimiento');
     const chkEvacuacion = document.getElementById('chk-evacuacion');
     const chkVentanas = document.getElementById('chk-ventanas');
-    const rngGrande = document.getElementById('rng-cant-grande');
-    const lblGrande = document.getElementById('lbl-cant-grande');
-    const rngPequeno = document.getElementById('rng-cant-pequeno');
-    const lblPequeno = document.getElementById('lbl-cant-pequeno');
+    const rngRojo = document.getElementById('rng-cant-rojo');
+    const lblRojo = document.getElementById('lbl-cant-rojo');
+    const rngVerde = document.getElementById('rng-cant-verde');
+    const lblVerde = document.getElementById('lbl-cant-verde');
+    const rngNaranja = document.getElementById('rng-cant-naranja');
+    const lblNaranja = document.getElementById('lbl-cant-naranja');
+    const rngAzul = document.getElementById('rng-cant-azul');
+    const lblAzul = document.getElementById('lbl-cant-azul');
     const rngVel = document.getElementById('rng-personas-vel');
     const lblVel = document.getElementById('lbl-personas-vel');
     const btnResetPersonas = document.getElementById('btn-reset-personas');
@@ -1781,19 +1882,44 @@
       });
     }
 
-    if (rngGrande) {
-      rngGrande.addEventListener('input', (e) => {
+    function respawnFromSliders() {
+      spawnPeople(
+        parseInt(rngRojo ? rngRojo.value : 8),
+        parseInt(rngVerde ? rngVerde.value : 4),
+        parseInt(rngNaranja ? rngNaranja.value : 4),
+        parseInt(rngAzul ? rngAzul.value : 4)
+      );
+    }
+
+    if (rngRojo) {
+      rngRojo.addEventListener('input', (e) => {
         const c = parseInt(e.target.value);
-        if (lblGrande) lblGrande.textContent = c;
-        spawnPeople(c, parseInt(rngPequeno ? rngPequeno.value : 4));
+        if (lblRojo) lblRojo.textContent = c;
+        spawnRoom('rojo', c);
       });
     }
 
-    if (rngPequeno) {
-      rngPequeno.addEventListener('input', (e) => {
+    if (rngVerde) {
+      rngVerde.addEventListener('input', (e) => {
         const c = parseInt(e.target.value);
-        if (lblPequeno) lblPequeno.textContent = c;
-        spawnPeople(parseInt(rngGrande ? rngGrande.value : 8), c);
+        if (lblVerde) lblVerde.textContent = c;
+        spawnRoom('verde', c);
+      });
+    }
+
+    if (rngNaranja) {
+      rngNaranja.addEventListener('input', (e) => {
+        const c = parseInt(e.target.value);
+        if (lblNaranja) lblNaranja.textContent = c;
+        spawnRoom('naranja', c);
+      });
+    }
+
+    if (rngAzul) {
+      rngAzul.addEventListener('input', (e) => {
+        const c = parseInt(e.target.value);
+        if (lblAzul) lblAzul.textContent = c;
+        spawnRoom('azul', c);
       });
     }
 
@@ -1806,9 +1932,7 @@
 
     if (btnResetPersonas) {
       btnResetPersonas.addEventListener('click', () => {
-        const cG = parseInt(rngGrande ? rngGrande.value : 8);
-        const cP = parseInt(rngPequeno ? rngPequeno.value : 4);
-        spawnPeople(cG, cP);
+        respawnFromSliders();
       });
     }
 
