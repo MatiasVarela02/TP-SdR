@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -56,7 +56,7 @@
     input[type="checkbox"] { margin-right: 8px; cursor: pointer; }
     input[type="range"] { cursor: pointer; accent-color: #ff5500; }
     hr { border: 0; border-top: 1px solid #555; margin: 12px 0; }
-    .speed-group { display: flex; gap: 5px; margin-top: 5px; }
+    .speed-group { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
     .speed-btn {
       flex: 1; padding: 6px 0; background-color: #333; color: white;
       border: 1px solid #555; border-radius: 4px; cursor: pointer;
@@ -263,9 +263,11 @@
     </div>
     <hr>
     <strong>Velocidad de Simulación</strong>
-    <div class="speed-group">
-      <button id="btn-1x" class="speed-btn active">Normal 1x</button>
-      <button id="btn-2x" class="speed-btn">Rápido 2x</button>
+    <div style="margin-top: 6px;">
+      <label style="display:flex; justify-content:space-between; margin-bottom: 2px;">
+        <span>Velocidad:</span> <span id="lbl-sim-vel">1.0x</span>
+      </label>
+      <input type="range" id="rng-sim-vel" min="0.5" max="8.0" step="0.5" value="1.0" style="width: 100%;">
     </div>
     <hr>
     <strong>Ventilación</strong>
@@ -304,12 +306,6 @@
           <span>Laboratorio Azul (Max 47):</span> <span id="lbl-cant-azul">4</span>
         </label>
         <input type="range" id="rng-cant-azul" min="0" max="47" value="4" style="width: 100%;">
-      </div>
-      <div style="margin-top: 8px;">
-        <label style="display:flex; justify-content:space-between; margin-bottom: 2px;">
-          <span>Velocidad:</span> <span id="lbl-personas-vel">1.2x</span>
-        </label>
-        <input type="range" id="rng-personas-vel" min="0.5" max="3.0" step="0.5" value="1.2" style="width: 100%;">
       </div>
     </div>
     <button id="btn-reset-personas" class="action-btn" style="margin-top: 8px;">Reubicar en Computadoras</button>
@@ -359,37 +355,100 @@
     let simSpeed = 1.0;
     let isSmokeGenerating = true;
 
-    const TECHO_HUMO        = 2.55;
-    const MAX_SMOKE         = IS_MOBILE ? 2500 : 6000;
-    const SMOKE_FLOOR       = 0.6;
-    const SMOKE_SPAWN_Y     = 0.7;
-    const SMOKE_STRIDE      = 4;
-    const HEATMAP_INTENSITY = 0.45;
-    const HEATMAP_EVERY     = IS_MOBILE ? 3 : 2;
-    const VELOCIDAD_HUMO    = 0.4;
+    /* ============================================================
+       PARÁMETROS FÍSICOS  (unidades SI: m, s, m/s)
+        El movimiento se integra con dt (segundos) � simSpeed.
+       de modo que es independiente de los FPS del dispositivo.
+       ============================================================ */
 
-    /* ---------- Sensibilidad del humo para evacuar ---------- */
-    const HUMO_THRESHOLD    = 1.2;
+    /* ---------- Humo ---------- */
+    const TECHO_HUMO           = 2.55;  // m   — altura de la capa de humo
+    const MAX_SMOKE            = IS_MOBILE ? 2500 : 6000;
+    const SMOKE_FLOOR          = 0.6;   // m   — altura mínima de la capa
+    const SMOKE_SPAWN_Y        = 0.7;   // m   — altura de emisión
+    const SMOKE_STRIDE         = 4;     // frames entre actualizaciones por partícula
+    const HEATMAP_INTENSITY    = 0.45;
+    const HEATMAP_EVERY        = IS_MOBILE ? 3 : 2;
+    const PLUME_RISE_MIN       = 1.0;   // m/s — subida de la pluma (fuego chico)
+    const PLUME_RISE_MAX       = 3.0;   // m/s — subida de la pluma (fuego grande)
+    const SMOKE_SPREAD_MIN     = 0.3;   // m/s — expansión radial bajo el techo
+    const SMOKE_SPREAD_MAX     = 1.0;   // m/s — expansión radial bajo el techo
+    const LAYER_DESCENT_MIN    = 0.01;  // m/s — descenso de la capa
+    const LAYER_DESCENT_MAX    = 0.03;  // m/s — descenso de la capa
+    const SMOKE_EMISSION_RATE  = 48;    // partículas/s por foco
+    const SMOKE_LATERAL_JITTER = 0.20;  // m/s — dispersión lateral al subir
+    const FLAME_RISE_MIN       = 1.0;   // m/s
+    const FLAME_RISE_MAX       = 2.5;   // m/s
+    const FLAME_TOP            = 1.0;   // m   — altura de reciclado de la llama
 
+    /* ---------- Dosis de humo (FED simplificado de Purser) ---------- */
+    const HUMO_THRESHOLD     = 0.8;    // densidad que dispara la evacuación local
+    const SMOKE_SAFE_DENSITY = 0.5;    // sin dosis por debajo de esta densidad
+    const SMOKE_FED_TIME     = 30.0;   // s para FED = 1 a densidad = DENSITY_MAX
+
+    /* ---------- Estado de las salas (indicadores, no físicos) ---------- */
     const ROOM_STATUS_EVERY = 1;
     const ROOM_RED_T        = 0.30;
     const ROOM_YELLOW_T     = 0.08;
     const ROOM_RED_PCT      = 0.28;
-    const ROOM_AVG_MORTAL   = 16;
+    const ROOM_AVG_MORTAL   = 12;
     const ROOM_VD_RED_PCT   = 0.15;
     const ROOM_VD_WARM_PCT  = 0.35;
     const ROOM_AVG_VDANGER  = 8;
     const ROOM_WARM_PCT     = 0.10;
     const ROOM_AVG_DANGER   = 2;
 
-    /* ---------- Parámetros de personas ---------- */
-    const PERSON_BASE_SPEED_SCALE = 0.5;
-    const CONTAGION_RADIUS        = 0.9;
-    const DEATH_TIME_LIMIT        = 20.0;
+    /* ---------- Personas ---------- */
+    const WALK_SPEED_MEAN     = 2.50;  // m/s — caminata rápida / carrera (adultos/adolescentes)
+    const WALK_SPEED_SD       = 0.60;  // m/s — desvío estándar
+    const WALK_SPEED_MIN      = 1.50;  // m/s — mínimo para adultos/adolescentes
+    const WALK_SPEED_MAX      = 4.00;  // m/s — carrera (más realista para evacuación)
+    const WANDER_SPEED_FACTOR = 0.65;  // factor de velocidad al deambular
+    const CONTAGION_RADIUS    = 0.9;   // m
+    const CONTAGION_DELAY_MIN = 1.0;   // s
+    const CONTAGION_DELAY_MAX = 3.0;   // s
+    const PREMOVEMENT_MEDIAN_NOALARM = 20.0; // s — pre-movimiento sin alarma
+    const PREMOVEMENT_MEDIAN_ALARM   = 6.0;  // s — pre-movimiento con alarma
+    const PREMOVEMENT_SIGMA   = 0.6;   // sigma de la lognormal
+    const PREMOVEMENT_MIN_T   = 2.0;   // s
+    const PREMOVEMENT_MAX_T   = 180.0; // s
 
-    const HEAT_SPEED_YELLOW_T = 0.25;
-    const HEAT_SPEED_ORANGE_T = 0.50;
-    const HEAT_SPEED_RED_T    = 0.75;
+    /* ---------- Reducción de velocidad por humo (tipo Jin) ---------- */
+    const VIS_BREAKS  = [0.10, 0.25, 0.45, 0.70];        // fracciones de DENSITY_MAX
+    const VIS_FACTORS = [1.00, 0.80, 0.60, 0.40, 0.20];  // factor de velocidad
+
+    /* ---------- Desorientación y choques entre personas ---------- */
+    const PERSON_COLLISION_R   = 0.28;   // m  — radio de choque entre personas
+    const CONFUSION_CHANCE     = 0.03;   // prob. por segundo de desorientarse al evacuar
+    const CONFUSION_TIME_MIN   = 2.5;    // s  — duración mínima de la desorientación
+    const CONFUSION_TIME_MAX   = 6.0;    // s  — duración máxima de la desorientación
+    const CONFUSION_SAFE_R     = 3.5;    // m  — no se confunden cerca de la salida
+    const CONFUSION_COOLDOWN   = 6.0;    // s  — tras recuperarse, no vuelven a perderse
+    const LAB_ROOM_IDXS        = [0, 2, 3, 4]; // índices de salas que son laboratorios
+
+    /* ---------- Utilidades estadísticas ---------- */
+    // Normal estándar por Box-Muller (media 0, desvío 1)
+    function gaussianRandom() {
+      let u = 0, v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    }
+
+    function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+    // Velocidad de caminata individual (m/s): normal truncada a [MIN, MAX]
+    function sampleWalkSpeed() {
+      return clamp(WALK_SPEED_MEAN + gaussianRandom() * WALK_SPEED_SD,
+                   WALK_SPEED_MIN, WALK_SPEED_MAX);
+    }
+
+    // Tiempo de pre-movimiento (s): lognormal con la mediana indicada
+    function samplePremovementTime(conAlarma) {
+      const median = conAlarma ? PREMOVEMENT_MEDIAN_ALARM : PREMOVEMENT_MEDIAN_NOALARM;
+      const t = median * Math.exp(PREMOVEMENT_SIGMA * gaussianRandom());
+      return clamp(t, PREMOVEMENT_MIN_T, PREMOVEMENT_MAX_T);
+    }
 
     /* ---------- Barreras invisibles ---------- */
     let windowsOpen = false;
@@ -436,14 +495,6 @@
       { id:'estado-azul',    name:'Laboratorio Azul', minX:3.6, maxX:14.5, minZ:-15.7, maxZ:-8.4 }
     ];
     ROOMS.forEach(r => r.estado = 'Normal');
-
-    function setSpeed(speed, btnId) {
-      simSpeed = speed;
-      document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(btnId).classList.add('active');
-    }
-    document.getElementById('btn-1x').addEventListener('click', () => setSpeed(1.0, 'btn-1x'));
-    document.getElementById('btn-2x').addEventListener('click', () => setSpeed(2.0, 'btn-2x'));
 
     /* ============================================================
        MENÚ HAMBURGUESA MÓVIL
@@ -1055,10 +1106,17 @@
       0x00cccc, 0xee0088, 0xffbb00, 0x3388ff, 0x00aa77
     ];
 
+    /* Color de la remera = color del laboratorio de origen */
+    const ROOM_COLORS = {
+      rojo:    0xee3333,
+      verde:   0x22cc55,
+      naranja: 0xff8800,
+      azul:    0x2266ff
+    };
+
     let isPeopleVisible = true;
     let isPeopleMoving  = true;
     let evacuationMode  = true;
-    let peopleSpeedMultiplier = 1.2;
     let deathCount = 0;
 
     const elContadorMuertes      = document.getElementById('contador-muertes');
@@ -1108,12 +1166,19 @@
 
     function getSpeedFactorByHeat(x, z) {
       const density = getHeatAt(x, z);
-      let t = density / DENSITY_MAX;
-      if (t > 1) t = 1;
-      if (t >= HEAT_SPEED_RED_T)    return 0.65;
-      if (t >= HEAT_SPEED_ORANGE_T) return 0.75;
-      if (t >= HEAT_SPEED_YELLOW_T) return 0.90;
-      return 1.0;
+      const t = Math.min(density / DENSITY_MAX, 1);
+      for (let i = 0; i < VIS_BREAKS.length; i++) {
+        if (t < VIS_BREAKS[i]) return VIS_FACTORS[i];
+      }
+      return VIS_FACTORS[VIS_FACTORS.length - 1];
+    }
+
+    // Tasa de dosis de humo (FED simplificado): FED = 1 → incapacidad
+    function getFedRate(x, z) {
+      const density = getHeatAt(x, z);
+      if (density <= SMOKE_SAFE_DENSITY) return 0;
+      const d = Math.min(density, DENSITY_MAX);
+      return ((d - SMOKE_SAFE_DENSITY) / (DENSITY_MAX - SMOKE_SAFE_DENSITY)) / SMOKE_FED_TIME;
     }
 
     function snapToNearestWalkable(x, z) {
@@ -1221,11 +1286,11 @@
 
     function triggerAlertPerson(p) {
       if (p.isDead || p.state === 'evacuating') return;
-      p.alerted = false;
-      if (p.alertMarker) p.alertMarker.visible = false;
-      p.state = 'evacuating';
-      p.reactionDelay = 0.1 + Math.random() * 0.3;
+      if (p.reactionDelay <= 0) {
+        p.reactionDelay = samplePremovementTime(alarmActive || true);
+      }
       p.idleTime = 0;
+      if (p.alertMarker) p.alertMarker.visible = false;
     }
 
     function createPerson(x, z, color = 0x2266ff, workstation = null) {
@@ -1271,19 +1336,26 @@
         x: px,
         z: pz,
         workstation: workstation,
-        speed: 0.8 + Math.random() * 0.6,
+        speed: sampleWalkSpeed(),
         animOffset: Math.random() * Math.PI * 2,
         idleTime: 0,
         stuckFrames: 0,
         state: isSitting ? 'sitting' : 'wandering',
         alerted: false,
         reactionDelay: 0,
+        contagionCue: false,
         wanderAngle: rotY,
         wanderTimer: 1.0 + Math.random() * 2.0,
-        dangerTimer: 0,
+        fed: 0,
         isDead: false,
         deathMarker: null,
-        alertMarker: alertMarker
+        alertMarker: alertMarker,
+        originRoomIdx: -1,
+        lost: false,
+        confusionTimer: 0,
+        confusionTarget: null,
+        confusionCooldown: 0,
+        bumpTimer: 0
       };
 
       people.push(personObj);
@@ -1344,7 +1416,7 @@
       }
       const need = targetCount - current.length;
       for (let i = 0; i < need; i++) {
-        const color = PERSON_COLORS[(current.length + i + colorOffset) % PERSON_COLORS.length];
+        const color = ROOM_COLORS[def.key] ?? PERSON_COLORS[(current.length + i + colorOffset) % PERSON_COLORS.length];
         let p;
         if (i < free.length) {
           p = createPerson(free[i].seatPos.x, free[i].seatPos.z, color, free[i]);
@@ -1353,6 +1425,7 @@
           p = createPerson(pt.x, pt.z, color, null);
         }
         p.roomKey = def.key;
+        p.originRoomIdx = def.roomIdx;
       }
     }
 
@@ -1406,7 +1479,7 @@
       if (p.isDead) return;
       p.isDead = true;
       p.state = 'dead';
-      p.dangerTimer = DEATH_TIME_LIMIT;
+      p.fed = 1;
 
       p.body.material.color.setHex(0x000000);
       p.head.material.color.setHex(0x000000);
@@ -1426,6 +1499,79 @@
       updateDeathCounter();
     }
 
+    /* ---------- Choques entre personas ---------- */
+    function collidesWithOthers(self, x, z, radius) {
+      const r2 = radius * radius;
+      for (let k = 0; k < people.length; k++) {
+        const o = people[k];
+        if (o === self || o.isDead) continue;
+        if (o.state === 'sitting') continue; // los sentados no bloquean el paso
+        const dx = o.x - x;
+        const dz = o.z - z;
+        if (dx * dx + dz * dz < r2) return true;
+      }
+      return false;
+    }
+
+    /* Busca un paso libre alrededor del ángulo deseado (esquiva paredes y gente) */
+    const STEER_OFFSETS = [0, 0.35, -0.35, 0.70, -0.70, 1.05, -1.05, 1.40, -1.40, 1.75, -1.75];
+    function findClearStep(p, baseAngle, step) {
+      for (let s = 0; s < STEER_OFFSETS.length; s++) {
+        const a = baseAngle + STEER_OFFSETS[s];
+        const nx = p.x + Math.sin(a) * step;
+        const nz = p.z + Math.cos(a) * step;
+        if (isWalkable(nx, nz) && !collidesWithOthers(p, nx, nz, PERSON_COLLISION_R)) {
+          return { x: nx, z: nz, angle: a };
+        }
+      }
+      return null;
+    }
+
+    // Avanza en sub-pasos para no "atravesar" paredes a alta velocidad
+    const MAX_SUBSTEP = PERSON_COLLISION_R * 0.75;
+    function advancePerson(p, baseAngle, step) {
+      let remaining = step;
+      let angle = baseAngle;
+      let moved = false;
+      while (remaining > 1e-4) {
+        const sub = Math.min(remaining, MAX_SUBSTEP);
+        const next = findClearStep(p, angle, sub);
+        if (!next) break;
+        p.x = next.x; p.z = next.z;
+        p.mesh.position.set(p.x, 0, p.z);
+        angle = next.angle;
+        moved = true;
+        remaining -= sub;
+      }
+      return moved ? angle : null;
+    }
+
+    /* ---------- Desorientación: algunos se pierden y van a otro laboratorio ---------- */
+    function startConfusion(p) {
+      const options = LAB_ROOM_IDXS.filter(idx => idx !== p.originRoomIdx);
+      if (options.length === 0) return;
+      p.wrongRoomIdx = options[Math.floor(Math.random() * options.length)];
+      p.confusionTarget = getRandomWalkablePointInRoom(ROOMS[p.wrongRoomIdx]);
+      p.lost = true;
+      p.confusionTimer = CONFUSION_TIME_MIN + Math.random() * (CONFUSION_TIME_MAX - CONFUSION_TIME_MIN);
+      if (p.alertMarker) p.alertMarker.visible = false;
+    }
+
+    function maybeConfuse(p, delta) {
+      if (p.lost) return;
+      // Cerca de la salida el camino es obvio: no se confunden
+      if (isNearExit(p.x, p.z)) return;
+      let bestDx = 0, bestDz = 0, bestD2 = Infinity;
+      for (let k = 0; k < EXITS.length; k++) {
+        const dx = p.x - EXITS[k].x;
+        const dz = p.z - EXITS[k].z;
+        const d2 = dx * dx + dz * dz;
+        if (d2 < bestD2) { bestD2 = d2; bestDx = dx; bestDz = dz; }
+      }
+      if (bestD2 < CONFUSION_SAFE_R * CONFUSION_SAFE_R) return;
+      if (Math.random() < CONFUSION_CHANCE * delta * simSpeed) startConfusion(p);
+    }
+
     function updatePeople(delta, time) {
       if (!isPeopleVisible) return;
 
@@ -1441,10 +1587,13 @@
             const dx = a.x - b.x;
             const dz = a.z - b.z;
             if (dx * dx + dz * dz <= CONTAGION_RADIUS * CONTAGION_RADIUS) {
-              b.state = 'evacuating';
-              b.reactionDelay = 0.15 + Math.random() * 0.35;
-              b.idleTime = 0;
-              if (b.alertMarker) b.alertMarker.visible = false;
+              if (!b.contagionCue) {
+                b.contagionCue = true;
+                const cue = CONTAGION_DELAY_MIN +
+                            Math.random() * (CONTAGION_DELAY_MAX - CONTAGION_DELAY_MIN);
+                if (b.reactionDelay <= 0) b.reactionDelay = cue;
+                else b.reactionDelay = Math.min(b.reactionDelay, cue);
+              }
             }
           }
         }
@@ -1463,29 +1612,27 @@
 
         if (!isPeopleMoving) continue;
 
-        /* ---------- Temporizador de muerte por recinto ---------- */
+        /* ---------- Dosis de humo (FED simplificado, acumulativa) ---------- */
         const estadoRecinto = getRoomStatusAt(p.x, p.z);
-        if (estadoRecinto === 'Muy Peligroso' || estadoRecinto === 'Mortal') {
-          p.dangerTimer += delta * simSpeed;
-          if (p.dangerTimer >= DEATH_TIME_LIMIT) {
-            killPerson(p);
-            continue;
-          }
-        } else {
-          p.dangerTimer = 0;
+        p.fed += getFedRate(p.x, p.z) * delta * simSpeed;
+        if (p.fed >= 1) {
+          killPerson(p);
+          continue;
         }
 
         const dangerFactor = getSpeedFactorByHeat(p.x, p.z);
 
-        /* ---------- Disparadores de evacuación ---------- */
+        /* ---------- Pre-movimiento y disparo de evacuación ---------- */
         if ((p.state === 'sitting' || p.state === 'wandering') && evacuationMode) {
           const heat = getHeatAt(p.x, p.z);
           const recintoPeligroso = (estadoRecinto === 'Peligroso' ||
                                     estadoRecinto === 'Muy Peligroso' ||
                                     estadoRecinto === 'Mortal');
-          if (heat >= HUMO_THRESHOLD || recintoPeligroso) {
+          const detecta = alarmActive || p.contagionCue ||
+                          heat >= HUMO_THRESHOLD || recintoPeligroso;
+          if (detecta) {
             if (p.reactionDelay <= 0) {
-              p.reactionDelay = 0.2 + Math.random() * 0.6;
+              p.reactionDelay = samplePremovementTime(alarmActive);
             }
             p.reactionDelay -= delta * simSpeed;
             if (p.reactionDelay <= 0) {
@@ -1529,8 +1676,8 @@
           p.mesh.rotation.y += diff * 0.10;
 
           const moveAngle = p.mesh.rotation.y;
-          const step = p.speed * peopleSpeedMultiplier * 0.65 *
-                       PERSON_BASE_SPEED_SCALE * dangerFactor * delta * simSpeed;
+          const step = Math.min(p.speed * WANDER_SPEED_FACTOR * dangerFactor * delta * simSpeed,
+                                MAX_SUBSTEP);
           const nextX = p.x + Math.sin(moveAngle) * step;
           const nextZ = p.z + Math.cos(moveAngle) * step;
 
@@ -1584,23 +1731,58 @@
             continue;
           }
 
-          const dir = getFlowDirection(p.x, p.z);
-
-          if (!dir) {
-            p.idleTime = 0.3 + Math.random() * 0.4;
-            if (!isWalkable(p.x, p.z)) {
-              const snap = snapToNearestWalkable(p.x, p.z);
-              if (snap) {
-                p.x = snap.x; p.z = snap.z;
-                p.mesh.position.set(p.x, 0, p.z);
-              }
-            }
+          /* --- Si ya alcanzó la salida, sale aunque haya congestión --- */
+          if (!p.lost && isNearExit(p.x, p.z)) {
+            removePerson(i);
             continue;
           }
 
-          if (dir.arrived) {
-            removePerson(i);
-            continue;
+          /* --- Desorientación: se pierde y se dirige a un laboratorio equivocado --- */
+          if (p.lost) {
+            p.confusionTimer -= delta * simSpeed;
+            if (p.confusionTimer <= 0) {
+              p.lost = false;
+              p.confusionTarget = null;
+              p.confusionCooldown = CONFUSION_COOLDOWN;
+            }
+          } else if (p.confusionCooldown > 0) {
+            p.confusionCooldown -= delta * simSpeed;
+          } else {
+            maybeConfuse(p, delta);
+          }
+
+          /* --- Dirección deseada: flujo hacia la salida o hacia el lugar equivocado --- */
+          let dir;
+          if (p.lost && p.confusionTarget) {
+            const tdx = p.confusionTarget.x - p.x;
+            const tdz = p.confusionTarget.z - p.z;
+            const tdist = Math.hypot(tdx, tdz);
+            if (tdist < 0.45) {
+              // Llegó al laboratorio equivocado: se detiene un instante y reacciona
+              p.idleTime = 0.5 + Math.random() * 0.8;
+              p.lost = false;
+              p.confusionTarget = null;
+              p.confusionCooldown = CONFUSION_COOLDOWN;
+              continue;
+            }
+            dir = { x: tdx / tdist, z: tdz / tdist };
+          } else {
+            dir = getFlowDirection(p.x, p.z);
+            if (!dir) {
+              p.idleTime = 0.3 + Math.random() * 0.4;
+              if (!isWalkable(p.x, p.z)) {
+                const snap = snapToNearestWalkable(p.x, p.z);
+                if (snap) {
+                  p.x = snap.x; p.z = snap.z;
+                  p.mesh.position.set(p.x, 0, p.z);
+                }
+              }
+              continue;
+            }
+            if (dir.arrived) {
+              removePerson(i);
+              continue;
+            }
           }
 
           const targetAngle = Math.atan2(dir.x, dir.z);
@@ -1609,39 +1791,35 @@
           while (diff > Math.PI) diff -= Math.PI * 2;
           p.mesh.rotation.y += diff * 0.15;
 
-          const step = p.speed * peopleSpeedMultiplier *
-                       PERSON_BASE_SPEED_SCALE * dangerFactor * delta * simSpeed;
+          const step = p.speed * dangerFactor * delta * simSpeed;
           const moveAngle = p.mesh.rotation.y;
-          const nextX = p.x + Math.sin(moveAngle) * step;
-          const nextZ = p.z + Math.cos(moveAngle) * step;
+          const endAngle = advancePerson(p, moveAngle, step);
 
-          if (isWalkable(nextX, nextZ)) {
-            p.x = nextX; p.z = nextZ;
-            p.mesh.position.set(p.x, 0, p.z);
+          if (endAngle !== null) {
+            p.mesh.rotation.y = endAngle;
             p.stuckFrames = 0;
+            p.bumpTimer = 0;
 
             const walkCycle = Math.sin(time * 10 * p.speed + p.animOffset);
             p.body.position.y = 0.45 + Math.abs(walkCycle) * 0.05;
             p.head.position.y = 1.04 + Math.abs(walkCycle) * 0.05;
           } else {
-            const sx = p.x + dir.x * step;
-            const sz = p.z + dir.z * step;
-            if (isWalkable(sx, sz)) {
-              p.x = sx; p.z = sz;
-              p.mesh.position.set(p.x, 0, p.z);
-              p.stuckFrames = 0;
-            } else {
-              p.stuckFrames++;
-              if (p.stuckFrames > 25 && p.stuckFrames % 25 === 0) {
-                const a = Math.random() * Math.PI * 2;
-                const nx = p.x + Math.cos(a) * 0.5;
-                const nz = p.z + Math.sin(a) * 0.5;
-                if (isWalkable(nx, nz)) {
-                  p.x = nx; p.z = nz;
-                  p.mesh.position.set(p.x, 0, p.z);
-                }
-                p.stuckFrames = 0;
+            /* Totalmente bloqueado: choque con otras personas (embotellamiento) o pared */
+            p.bumpTimer += delta * simSpeed;
+            p.body.position.y = 0.45;
+            p.head.position.y = 1.04;
+            if (p.bumpTimer > 0.12) {
+              p.bumpTimer = 0;
+              p.idleTime = 0.05 + Math.random() * 0.2;
+            }
+            p.stuckFrames++;
+            if (p.stuckFrames > 40) {
+              const snap = snapToNearestWalkable(p.x, p.z);
+              if (snap) {
+                p.x = snap.x; p.z = snap.z;
+                p.mesh.position.set(p.x, 0, p.z);
               }
+              p.stuckFrames = 0;
             }
           }
           continue;
@@ -1664,9 +1842,9 @@
       const flameSpeeds = [];
       for (let i = 0; i < flameCount; i++) {
         flamePos[i*3]   = origin.x + (Math.random() - 0.5) * 0.5;
-        flamePos[i*3+1] = Math.random() * 1.0;
+        flamePos[i*3+1] = Math.random() * FLAME_TOP;
         flamePos[i*3+2] = origin.z + (Math.random() - 0.5) * 0.5;
-        flameSpeeds.push(0.015 + Math.random() * 0.02);
+        flameSpeeds.push(FLAME_RISE_MIN + Math.random() * (FLAME_RISE_MAX - FLAME_RISE_MIN));
       }
       flameGeo.setAttribute('position', new THREE.BufferAttribute(flamePos, 3));
       const flameMat = new THREE.PointsMaterial({ color:0xff3700, size:0.23, transparent:true, opacity:0.8 });
@@ -1682,13 +1860,13 @@
         smokePos[i*3+1] = -9999;
         smokePos[i*3+2] = origin.z;
         const angle = Math.random() * Math.PI * 2;
-        const spreadSpeed = 0.014 + Math.random() * 0.028;
+        const spreadSpeed = SMOKE_SPREAD_MIN + Math.random() * (SMOKE_SPREAD_MAX - SMOKE_SPREAD_MIN);
         smokeVel.push({
           vx: Math.cos(angle) * spreadSpeed,
-          vy: 0.010 + Math.random() * 0.014,
+          vy: PLUME_RISE_MIN + Math.random() * (PLUME_RISE_MAX - PLUME_RISE_MIN),
           vz: Math.sin(angle) * spreadSpeed,
           cooling: false,
-          cool: 0.00016 + Math.random() * 0.00020
+          cool: LAYER_DESCENT_MIN + Math.random() * (LAYER_DESCENT_MAX - LAYER_DESCENT_MIN)
         });
       }
       smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePos, 3));
@@ -1704,7 +1882,6 @@
 
       const sArr = smokeGeo.attributes.position.array;
       const fArr = flameGeo.attributes.position.array;
-      const accel = Math.pow(1.0015, SMOKE_STRIDE);
       let phase = 0;
 
       return {
@@ -1725,12 +1902,13 @@
           this.spawnAccumulator = 0;
           smoke.visible = false;
         },
-        update(time) {
+        update(time, dt) {
+          const dtSim = dt * simSpeed;   // segundos simulados transcurridos
           if (this.active) {
             light.intensity = 0.2 + Math.sin(time*15*simSpeed + origin.x)*0.1 + Math.random()*0.1;
             for (let i = 0; i < flameCount; i++) {
-              fArr[i*3+1] += flameSpeeds[i] * simSpeed;
-              if (fArr[i*3+1] > 1.0) {
+              fArr[i*3+1] += flameSpeeds[i] * dtSim;
+              if (fArr[i*3+1] > FLAME_TOP) {
                 fArr[i*3+1] = 0.1;
                 fArr[i*3]   = origin.x + (Math.random()-0.5)*0.5;
                 fArr[i*3+2] = origin.z + (Math.random()-0.5)*0.5;
@@ -1739,7 +1917,7 @@
             flameGeo.attributes.position.needsUpdate = true;
 
             if (isSmokeGenerating) {
-              this.spawnAccumulator += (1.5 * VELOCIDAD_HUMO) * simSpeed;
+              this.spawnAccumulator += SMOKE_EMISSION_RATE * dtSim;
               const n = Math.floor(this.spawnAccumulator);
               this.spawnAccumulator -= n;
               for (let s = 0; s < n; s++) {
@@ -1758,7 +1936,9 @@
 
           const ceilingLimit = TECHO_HUMO;
           phase = (phase + 1) % SMOKE_STRIDE;
-          const step = simSpeed * SMOKE_STRIDE * VELOCIDAD_HUMO;
+          // Cada partícula se actualiza 1 de cada SMOKE_STRIDE frames;
+          // el desplazamiento por actualización cubre SMOKE_STRIDE frames de tiempo.
+          const step = SMOKE_STRIDE * dtSim;
 
           for (let i = phase; i < this.activeSmokeCount; i += SMOKE_STRIDE) {
             const idx = i * 3;
@@ -1767,18 +1947,18 @@
               let nextZ = sArr[idx+2];
               if (!smokeVel[i].cooling) {
                 sArr[idx+1] += smokeVel[i].vy * step;
-                nextX += (Math.random()-0.5) * 0.01 * step;
-                nextZ += (Math.random()-0.5) * 0.01 * step;
+                nextX += (Math.random()-0.5) * SMOKE_LATERAL_JITTER * step;
+                nextZ += (Math.random()-0.5) * SMOKE_LATERAL_JITTER * step;
                 if (sArr[idx+1] >= ceilingLimit) {
                   sArr[idx+1] = ceilingLimit;
                   smokeVel[i].cooling = true;
                 }
               } else {
-                smokeVel[i].vx = Math.max(-0.02, Math.min(0.02, smokeVel[i].vx * accel));
-                smokeVel[i].vz = Math.max(-0.02, Math.min(0.02, smokeVel[i].vz * accel));
+                smokeVel[i].vx = Math.max(-SMOKE_SPREAD_MAX, Math.min(SMOKE_SPREAD_MAX, smokeVel[i].vx));
+                smokeVel[i].vz = Math.max(-SMOKE_SPREAD_MAX, Math.min(SMOKE_SPREAD_MAX, smokeVel[i].vz));
                 nextX += smokeVel[i].vx * step;
                 nextZ += smokeVel[i].vz * step;
-                sArr[idx+1] -= smokeVel[i].cool * step;
+                sArr[idx+1] = ceilingLimit;
               }
 
               const prevX = sArr[idx];
@@ -1796,8 +1976,8 @@
               if (blocked) {
                 smokeVel[i].vx *= -0.5;
                 smokeVel[i].vz *= -0.5;
-                smokeVel[i].vx += (Math.random()-0.5)*0.02;
-                smokeVel[i].vz += (Math.random()-0.5)*0.02;
+                smokeVel[i].vx += (Math.random()-0.5)*0.2;
+                smokeVel[i].vz += (Math.random()-0.5)*0.2;
                 nextX = sArr[idx];
                 nextZ = sArr[idx+2];
               }
@@ -1851,8 +2031,8 @@
     const lblNaranja = document.getElementById('lbl-cant-naranja');
     const rngAzul = document.getElementById('rng-cant-azul');
     const lblAzul = document.getElementById('lbl-cant-azul');
-    const rngVel = document.getElementById('rng-personas-vel');
-    const lblVel = document.getElementById('lbl-personas-vel');
+    const rngVel = document.getElementById('rng-sim-vel');
+    const lblVel = document.getElementById('lbl-sim-vel');
     const btnResetPersonas = document.getElementById('btn-reset-personas');
 
     if (chkPersonas) {
@@ -1888,6 +2068,7 @@
         windowsOpen = e.target.checked;
       });
     }
+
 
     function respawnFromSliders() {
       spawnPeople(
@@ -1932,8 +2113,8 @@
 
     if (rngVel) {
       rngVel.addEventListener('input', (e) => {
-        peopleSpeedMultiplier = parseFloat(e.target.value);
-        if (lblVel) lblVel.textContent = peopleSpeedMultiplier.toFixed(1) + 'x';
+        simSpeed = parseFloat(e.target.value);
+        if (lblVel) lblVel.textContent = simSpeed.toFixed(1) + 'x';
       });
     }
 
@@ -1952,7 +2133,7 @@
     const floorPositions = floorGeo.attributes.position.array;
     const floorColors    = floorGeo.attributes.color.array;
 
-    const HEAT_COLS = 80, HEAT_ROWS = 80, DENSITY_MAX = 15;
+    const HEAT_COLS = 80, HEAT_ROWS = 80, DENSITY_MAX = 20;
     const heatDensity = new Float32Array(HEAT_COLS * HEAT_ROWS);
     const heatSmooth  = new Float32Array(HEAT_COLS * HEAT_ROWS);
     const heatMinX  = floorCenterX - floorWidth / 2;
@@ -2082,7 +2263,7 @@
       const delta = Math.min(clock.getDelta(), 0.1);
       const time  = clock.elapsedTime;
 
-      for (let i = 0; i < fires.length; i++) fires[i].update(time);
+      for (let i = 0; i < fires.length; i++) fires[i].update(time, delta);
       updatePeople(delta, time);
 
       if (frameCounter % HEATMAP_EVERY === 0) { computeDensity(); updateHeatmap(); }
