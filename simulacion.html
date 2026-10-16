@@ -379,6 +379,10 @@
     const CONFUSION_COOLDOWN   = 6.0;
     const LAB_ROOM_IDX_S       = [0, 2, 3, 4];
 
+    /* EVASIÓN DE FUEGO */
+    const FIRE_AVOID_RADIUS    = 2.2;   // m — distancia mínima entre el fuego y la ruta recta al objetivo
+    const FIRE_SWITCH_COOLDOWN = 3.0;   // s — tiempo mínimo antes de volver a evaluar cambiar de salida
+
     function gaussianRandom() {
       let u = 0, v = 0;
       while (u === 0) u = Math.random();
@@ -418,9 +422,7 @@
     function wouldHitBarrier(px, pz, nx, nz, py = 1.2) {
       // --- Barreras invisibles en ventanas ---
       // Bloquean el humo SOLO si la ventana no está rota Y está prácticamente cerrada.
-      // Si está abierta (currentOpenRatio > 0.05), el humo pasa por el hueco abierto
-      // (la hoja corredera se desplaza hacia el lado negativo, dejando libre
-      //  la franja [maxX - openRatio*width, maxX] en eje X, o análoga en Z).
+      // Si está abierta (currentOpenRatio > 0.05), el humo pasa por el hueco abierto.
       for (let i = 0; i < invisibleWindowBarriers.length; i++) {
         const b = invisibleWindowBarriers[i];
         if (b.window.isBroken) continue;
@@ -437,7 +439,7 @@
               if (crossX >= b.minX - margin && crossX <= b.maxX + margin) {
                 if (openRatio > 0.05) {
                   const openStart = b.maxX - openRatio * b.width;
-                  if (crossX >= openStart) continue; // pasa por el hueco abierto
+                  if (crossX >= openStart) continue;
                 }
                 return true;
               }
@@ -451,7 +453,7 @@
               if (crossZ >= b.minZ - margin && crossZ <= b.maxZ + margin) {
                 if (openRatio > 0.05) {
                   const openStart = b.maxZ - openRatio * b.width;
-                  if (crossZ >= openStart) continue; // pasa por el hueco abierto
+                  if (crossZ >= openStart) continue;
                 }
                 return true;
               }
@@ -841,18 +843,22 @@
     }
     buildCollisionMap();
 
-    let exitDistField = null;
+    /* CAMPO DE DISTANCIA POR CADA SALIDA (BFS independiente) */
+    let exitDistFields = null;
 
     function buildExitField() {
       if (!insideGrid) return;
       const N = gridStepsX * gridStepsZ;
-      exitDistField = new Int32Array(N);
-      exitDistField.fill(-1);
-
-      const queue = [];
+      exitDistFields = EXITS.map(() => {
+        const f = new Int32Array(N);
+        f.fill(-1);
+        return f;
+      });
 
       for (let e = 0; e < EXITS.length; e++) {
         const exit = EXITS[e];
+        const field = exitDistFields[e];
+
         let startIdx = -1;
         let bestD2 = Infinity;
         for (let j = 0; j < gridStepsZ; j++) {
@@ -865,42 +871,42 @@
             if (d2 < bestD2) { bestD2 = d2; startIdx = idx; }
           }
         }
-        if (startIdx >= 0 && exitDistField[startIdx] === -1) {
-          exitDistField[startIdx] = 0;
-          queue.push(startIdx);
-        }
-      }
+        if (startIdx < 0) continue;
 
-      if (queue.length === 0) { console.warn('Ninguna salida alcanzable'); return; }
+        field[startIdx] = 0;
+        const queue = [startIdx];
+        let head = 0;
+        while (head < queue.length) {
+          const curr = queue[head++];
+          const d = field[curr];
+          const ci = curr % gridStepsX;
+          const cj = (curr - ci) / gridStepsX;
 
-      let head = 0;
-      while (head < queue.length) {
-        const curr = queue[head++];
-        const d = exitDistField[curr];
-        const ci = curr % gridStepsX;
-        const cj = (curr - ci) / gridStepsX;
-
-        const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-        for (let k = 0; k < 4; k++) {
-          const ni = ci + dirs[k][0];
-          const nj = cj + dirs[k][1];
-          if (ni < 0 || ni >= gridStepsX || nj < 0 || nj >= gridStepsZ) continue;
-          const nidx = ni + nj * gridStepsX;
-          if (exitDistField[nidx] !== -1) continue;
-          if (insideGrid[nidx] !== 1) continue;
-          exitDistField[nidx] = d + 1;
-          queue.push(nidx);
+          const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+          for (let k = 0; k < 4; k++) {
+            const ni = ci + dirs[k][0];
+            const nj = cj + dirs[k][1];
+            if (ni < 0 || ni >= gridStepsX || nj < 0 || nj >= gridStepsZ) continue;
+            const nidx = ni + nj * gridStepsX;
+            if (field[nidx] !== -1) continue;
+            if (insideGrid[nidx] !== 1) continue;
+            field[nidx] = d + 1;
+            queue.push(nidx);
+          }
         }
       }
     }
     buildExitField();
 
-    function getFlowDirection(x, z) {
-      if (!exitDistField) return null;
+    function getFlowDirection(x, z, exitIdx = 0) {
+      if (!exitDistFields) return null;
+      const field = exitDistFields[exitIdx];
+      if (!field) return null;
+
       const i = Math.floor((x - gridMinX) / GRID_RES);
       const j = Math.floor((z - gridMinZ) / GRID_RES);
       if (i < 0 || i >= gridStepsX || j < 0 || j >= gridStepsZ) return null;
-      const currDist = exitDistField[i + j * gridStepsX];
+      const currDist = field[i + j * gridStepsX];
       if (currDist < 0) return null;
       if (currDist === 0) return { x: 0, z: 0, arrived: true };
 
@@ -912,7 +918,7 @@
           const ni = i + di;
           const nj = j + dj;
           if (ni < 0 || ni >= gridStepsX || nj < 0 || nj >= gridStepsZ) continue;
-          const nd = exitDistField[ni + nj * gridStepsX];
+          const nd = field[ni + nj * gridStepsX];
           if (nd < 0) continue;
           if (nd < bestDist) {
             bestDist = nd;
@@ -1440,11 +1446,7 @@
 
     detectAndBuildWindows();
 
-    /* === BARRERAS INVISIBLES DE HUMO EN VENTANAS ===
-       - Cubren todo el hueco vertical (alféizar → techo) para que el humo no se
-         escape por encima del dintel cuando la ventana está cerrada.
-       - Si la ventana está ABIERTA (currentOpenRatio > 0.05) o ROTA, el humo
-         atraviesa la franja abierta (lado positivo del eje) y sale. */
+    /* === BARRERAS INVISIBLES DE HUMO EN VENTANAS === */
     function buildInvisibleWindowBarriers() {
       invisibleWindowBarriers.length = 0;
       const yTop = TECHO_HUMO + 0.35;
@@ -1998,6 +2000,29 @@
       return null;
     }
 
+    /* Distancia mínima entre un fuego activo y el segmento recto persona→objetivo.
+       Devuelve Infinity si no hay fuegos activos. */
+    function distanceFromFireToPath(px, pz, targetX, targetZ) {
+      if (!fires || fires.length === 0) return Infinity;
+      const dx = targetX - px;
+      const dz = targetZ - pz;
+      const len2 = dx*dx + dz*dz;
+      if (len2 < 1e-6) return Infinity;
+      let minDist = Infinity;
+      for (let k = 0; k < fires.length; k++) {
+        const f = fires[k];
+        if (!f.active) continue;
+        const fx = f.origin.x, fz = f.origin.z;
+        let t = ((fx - px) * dx + (fz - pz) * dz) / len2;
+        t = Math.max(0, Math.min(1, t));
+        const cx = px + t * dx;
+        const cz = pz + t * dz;
+        const dist = Math.hypot(fx - cx, fz - cz);
+        if (dist < minDist) minDist = dist;
+      }
+      return minDist;
+    }
+
     let _deathMarkerTexture = null;
     function getDeathMarkerTexture() {
       if (_deathMarkerTexture) return _deathMarkerTexture;
@@ -2085,6 +2110,13 @@
       group.rotation.y = rotY;
       scene.add(group);
 
+      // Salida preferida: la más cercana en el momento de la creación.
+      let nearestExit = 0, bestD2 = Infinity;
+      for (let k = 0; k < EXITS.length; k++) {
+        const d2 = (px - EXITS[k].x) ** 2 + (pz - EXITS[k].z) ** 2;
+        if (d2 < bestD2) { bestD2 = d2; nearestExit = k; }
+      }
+
       const personObj = {
         mesh: group, body: body, head: head,
         x: px, z: pz,
@@ -2106,7 +2138,10 @@
         confusionTimer: 0,
         confusionTarget: null,
         confusionCooldown: 0,
-        bumpTimer: 0
+        bumpTimer: 0,
+        // --- Evasión de fuego ---
+        targetExitIdx: nearestExit,
+        exitSwitchCooldown: 0
       };
       people.push(personObj);
       return personObj;
@@ -2365,6 +2400,14 @@
             p.reactionDelay -= delta * simSpeed;
             if (p.reactionDelay <= 0) {
               p.state = 'evacuating';
+              // Al iniciar la evacuación, elegir la salida más cercana en ese momento.
+              let nearestExit = 0, bestD2 = Infinity;
+              for (let k = 0; k < EXITS.length; k++) {
+                const d2 = (p.x - EXITS[k].x) ** 2 + (p.z - EXITS[k].z) ** 2;
+                if (d2 < bestD2) { bestD2 = d2; nearestExit = k; }
+              }
+              p.targetExitIdx = nearestExit;
+              p.exitSwitchCooldown = 0;
               if (p.alertMarker) p.alertMarker.visible = false;
             }
           }
@@ -2452,11 +2495,38 @@
               p.lost = false;
               p.confusionTarget = null;
               p.confusionCooldown = CONFUSION_COOLDOWN;
+              p.exitSwitchCooldown = 0;
             }
           } else if (p.confusionCooldown > 0) {
             p.confusionCooldown -= delta * simSpeed;
           } else {
             maybeConfuse(p, delta);
+          }
+
+          /* ===== EVASIÓN DE FUEGO =====
+             Si la ruta recta hacia la salida objetivo pasa demasiado cerca de un
+             foco activo, la persona se da vuelta y se dirige a la otra salida
+             (siempre que esa otra ruta esté más despejada). */
+          if (!p.lost && EXITS.length >= 2) {
+            if (p.exitSwitchCooldown > 0) {
+              p.exitSwitchCooldown -= delta * simSpeed;
+            } else {
+              const curExit = EXITS[p.targetExitIdx];
+              const dCur = distanceFromFireToPath(p.x, p.z, curExit.x, curExit.z);
+              if (dCur < FIRE_AVOID_RADIUS) {
+                const otherIdx = 1 - p.targetExitIdx;
+                const otherExit = EXITS[otherIdx];
+                const dOther = distanceFromFireToPath(p.x, p.z, otherExit.x, otherExit.z);
+                if (dOther > dCur + 0.5) {
+                  // La otra ruta está claramente más despejada → dar la vuelta.
+                  p.targetExitIdx = otherIdx;
+                  p.exitSwitchCooldown = FIRE_SWITCH_COOLDOWN;
+                } else {
+                  // Ambas rutas están mal: esperar un poco antes de reevaluar.
+                  p.exitSwitchCooldown = FIRE_SWITCH_COOLDOWN * 0.5;
+                }
+              }
+            }
           }
 
           let dir;
@@ -2469,11 +2539,12 @@
               p.lost = false;
               p.confusionTarget = null;
               p.confusionCooldown = CONFUSION_COOLDOWN;
+              p.exitSwitchCooldown = 0;
               continue;
             }
             dir = { x: tdx / tdist, z: tdz / tdist };
           } else {
-            dir = getFlowDirection(p.x, p.z);
+            dir = getFlowDirection(p.x, p.z, p.targetExitIdx);
             if (!dir) {
               p.idleTime = 0.3 + Math.random() * 0.4;
               if (!isWalkable(p.x, p.z)) {
@@ -2813,6 +2884,7 @@
           if (p.isDead) return;
           p.state = 'wandering';
           p.reactionDelay = 0;
+          p.exitSwitchCooldown = 0;
           if (evacuationMode) {
             p.wanderAngle = Math.random() * Math.PI * 2;
             p.wanderTimer = 1.0 + Math.random() * 2.0;
