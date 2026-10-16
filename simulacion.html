@@ -16,7 +16,6 @@
     }
     canvas { display: block; touch-action: none; }
 
-    /* ============ BOTÓN HAMBURGUESA (solo móvil) ============ */
     #btn-menu {
       display: none;
       position: fixed;
@@ -44,7 +43,6 @@
       z-index: 99;
     }
 
-    /* ============ UI DE ESCRITORIO ============ */
     #ui {
       position: absolute; top: 15px; left: 15px; color: #fff;
       background: rgba(0,0,0,0.85); padding: 15px 20px; border-radius: 8px;
@@ -56,14 +54,6 @@
     input[type="checkbox"] { margin-right: 8px; cursor: pointer; }
     input[type="range"] { cursor: pointer; accent-color: #ff5500; }
     hr { border: 0; border-top: 1px solid #555; margin: 12px 0; }
-    .speed-group { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
-    .speed-btn {
-      flex: 1; padding: 6px 0; background-color: #333; color: white;
-      border: 1px solid #555; border-radius: 4px; cursor: pointer;
-      font-size: 12px; transition: 0.2s; text-align: center;
-    }
-    .speed-btn:hover { background-color: #555; }
-    .speed-btn.active { background-color: #ff5500; border-color: #ff7700; font-weight: bold; }
     .action-btn {
       margin-top: 10px; width: 100%; padding: 8px; background-color: #444;
       color: white; border: 1px solid #666; border-radius: 4px;
@@ -72,31 +62,6 @@
     .action-btn:hover { background-color: #d93600; border-color: #ff5500; }
     #btn-detener-humo.stopped { background-color: #ff5500; border-color: #ff7700; }
 
-    .action-btn.btn-alarm {
-      background-color: #c62828; border-color: #e53935;
-    }
-    .action-btn.btn-alarm:hover { background-color: #d32f2f; border-color: #f44336; }
-    .action-btn.btn-alarm.active {
-      background-color: #e65100; border-color: #ff9800;
-      animation: pulse-alarm 1.2s infinite alternate;
-    }
-    @keyframes pulse-alarm {
-      0% { box-shadow: 0 0 4px #ff5500; }
-      100% { box-shadow: 0 0 16px #ff1100; }
-    }
-    .badge-normal {
-      margin-top: 8px; padding: 6px 10px; background: rgba(0,200,83,0.15);
-      border: 1px solid #00c853; color: #69f0ae; border-radius: 6px;
-      font-size: 12px; font-weight: bold; text-align: center;
-    }
-    .badge-alerta {
-      margin-top: 8px; padding: 6px 10px; background: rgba(255,61,0,0.25);
-      border: 1px solid #ff3d00; color: #ff9e80; border-radius: 6px;
-      font-size: 12px; font-weight: bold; text-align: center;
-      animation: pulse-badge 1s infinite alternate;
-    }
-    @keyframes pulse-badge { 0% { opacity:0.8; } 100% { opacity:1.0; } }
-
     #contador-muertes {
       margin-top: 4px;
       font-size: 26px; font-weight: bold; text-align: center;
@@ -104,7 +69,6 @@
       text-shadow: 0 0 8px rgba(255,0,0,0.6);
     }
 
-    /* Contador de víctimas fijo — oculto en escritorio */
     #victimas-movil { display: none; }
 
     #tabla-seguridad {
@@ -136,11 +100,9 @@
       border-bottom: 1px solid #444;
     }
 
-    /* ============ MÓVIL / TABLET ============ */
     @media (max-width: 768px), (pointer: coarse) and (max-width: 900px) {
       #btn-menu { display: flex; }
 
-      /* Panel de control oculto por defecto en móvil */
       #ui { display: none; }
 
       body.ui-open #ui-overlay { display: block; }
@@ -167,17 +129,14 @@
       body.ui-open #ui::-webkit-scrollbar-track { background: rgba(255,255,255,0.12); border-radius: 3px; }
       body.ui-open #ui::-webkit-scrollbar-thumb { background: #ff5500; border-radius: 3px; }
 
-      /* Controles más táctiles */
       body.ui-open input[type="checkbox"] { width: 18px; height: 18px; vertical-align: middle; }
       body.ui-open label { padding: 5px 0; font-size: 14px; margin-bottom: 3px; }
-      body.ui-open .speed-btn,
       body.ui-open .action-btn {
         padding: 11px 0; font-size: 13px; min-height: 42px;
       }
       body.ui-open input[type="range"] { min-height: 26px; width: 100% !important; }
       body.ui-open hr { margin: 10px 0; }
 
-      /* Tabla de seguridad arriba a la derecha cuando UI cerrada */
       #tabla-seguridad {
         position: fixed;
         top: 10px; right: 10px;
@@ -194,7 +153,6 @@
       #tabla-seguridad th, #tabla-seguridad td { padding: 3px 5px; font-size: 11px; }
       #tabla-seguridad th { font-size: 9px; }
 
-      /* Con el menú abierto ocultamos tabla y minimapa para no tapar el panel */
       body.ui-open #tabla-seguridad,
       body.ui-open #minimapa-marco { display: none; }
 
@@ -207,11 +165,8 @@
       }
       #minimapa-titulo { font-size: 10px; padding: 4px 0; }
 
-      /* Ajustes menores de legibilidad en textos */
-      .speed-btn { font-size: 11px; }
       .action-btn { font-size: 12px; }
 
-      /* ---------- Contador de víctimas fijo (solo móvil) ---------- */
       .victimas-section { display: none; }
 
       #victimas-movil {
@@ -272,8 +227,9 @@
     <hr>
     <strong>Ventilación</strong>
     <div class="control-group">
-      <label><input type="checkbox" id="chk-ventanas"> Abrir Ventanas</label>
+      <label><input type="checkbox" id="chk-auto-romper" checked> Romper vidrios si es Mortal</label>
     </div>
+    <button id="btn-reparar-vidrios" class="action-btn" style="background-color: #1b5e20; border-color: #388e3c;">Reparar Vidrios</button>
     <hr>
     <button id="btn-detener-humo" class="action-btn">Detener Humo</button>
     <button id="btn-limpiar" class="action-btn">Limpiar Humo y Enfriar</button>
@@ -316,7 +272,6 @@
     </div>
   </div>
 
-  <!-- Contador de víctimas fijo (solo se muestra en móvil) -->
   <div id="victimas-movil">
     <div id="victimas-movil-titulo">Víctimas</div>
     <div id="contador-muertes-movil">0</div>
@@ -346,47 +301,36 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
   <script>
-    /* ============================================================
-       DETECCIÓN DE MÓVIL — ajusta calidad automáticamente
-       ============================================================ */
     const IS_MOBILE = window.matchMedia('(max-width: 768px)').matches ||
                       /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
     let simSpeed = 1.0;
     let isSmokeGenerating = true;
 
-    /* ============================================================
-       PARÁMETROS FÍSICOS  (unidades SI: m, s, m/s)
-        El movimiento se integra con dt (segundos) � simSpeed.
-       de modo que es independiente de los FPS del dispositivo.
-       ============================================================ */
-
-    /* ---------- Humo ---------- */
-    const TECHO_HUMO           = 2.55;  // m   — altura de la capa de humo
+    /* PARÁMETROS FÍSICOS (SI) */
+    const TECHO_HUMO           = 2.55;
     const MAX_SMOKE            = IS_MOBILE ? 2500 : 6000;
-    const SMOKE_FLOOR          = 0.6;   // m   — altura mínima de la capa
-    const SMOKE_SPAWN_Y        = 0.7;   // m   — altura de emisión
-    const SMOKE_STRIDE         = 4;     // frames entre actualizaciones por partícula
+    const SMOKE_FLOOR          = 0.6;
+    const SMOKE_SPAWN_Y        = 0.7;
+    const SMOKE_STRIDE         = 4;
     const HEATMAP_INTENSITY    = 0.45;
     const HEATMAP_EVERY        = IS_MOBILE ? 3 : 2;
-    const PLUME_RISE_MIN       = 1.0;   // m/s — subida de la pluma (fuego chico)
-    const PLUME_RISE_MAX       = 3.0;   // m/s — subida de la pluma (fuego grande)
-    const SMOKE_SPREAD_MIN     = 0.3;   // m/s — expansión radial bajo el techo
-    const SMOKE_SPREAD_MAX     = 1.0;   // m/s — expansión radial bajo el techo
-    const LAYER_DESCENT_MIN    = 0.01;  // m/s — descenso de la capa
-    const LAYER_DESCENT_MAX    = 0.03;  // m/s — descenso de la capa
-    const SMOKE_EMISSION_RATE  = 48;    // partículas/s por foco
-    const SMOKE_LATERAL_JITTER = 0.20;  // m/s — dispersión lateral al subir
-    const FLAME_RISE_MIN       = 1.0;   // m/s
-    const FLAME_RISE_MAX       = 2.5;   // m/s
-    const FLAME_TOP            = 1.0;   // m   — altura de reciclado de la llama
+    const PLUME_RISE_MIN       = 1.0;
+    const PLUME_RISE_MAX       = 3.0;
+    const SMOKE_SPREAD_MIN     = 0.3;
+    const SMOKE_SPREAD_MAX     = 1.0;
+    const LAYER_DESCENT_MIN    = 0.01;
+    const LAYER_DESCENT_MAX    = 0.03;
+    const SMOKE_EMISSION_RATE  = 48;
+    const SMOKE_LATERAL_JITTER = 0.20;
+    const FLAME_RISE_MIN       = 1.0;
+    const FLAME_RISE_MAX       = 2.5;
+    const FLAME_TOP            = 1.0;
 
-    /* ---------- Dosis de humo (FED simplificado de Purser) ---------- */
-    const HUMO_THRESHOLD     = 0.8;    // densidad que dispara la evacuación local
-    const SMOKE_SAFE_DENSITY = 0.5;    // sin dosis por debajo de esta densidad
-    const SMOKE_FED_TIME     = 30.0;   // s para FED = 1 a densidad = DENSITY_MAX
+    const HUMO_THRESHOLD     = 0.8;
+    const SMOKE_SAFE_DENSITY = 0.5;
+    const SMOKE_FED_TIME     = 30.0;
 
-    /* ---------- Estado de las salas (indicadores, no físicos) ---------- */
     const ROOM_STATUS_EVERY = 1;
     const ROOM_RED_T        = 0.30;
     const ROOM_YELLOW_T     = 0.08;
@@ -398,61 +342,49 @@
     const ROOM_WARM_PCT     = 0.10;
     const ROOM_AVG_DANGER   = 2;
 
-    /* ---------- Personas ---------- */
-    const WALK_SPEED_MEAN     = 2.50;  // m/s — caminata rápida / carrera (adultos/adolescentes)
-    const WALK_SPEED_SD       = 0.60;  // m/s — desvío estándar
-    const WALK_SPEED_MIN      = 1.50;  // m/s — mínimo para adultos/adolescentes
-    const WALK_SPEED_MAX      = 4.00;  // m/s — carrera (más realista para evacuación)
-    const WANDER_SPEED_FACTOR = 0.65;  // factor de velocidad al deambular
-    const CONTAGION_RADIUS    = 0.9;   // m
-    const CONTAGION_DELAY_MIN = 1.0;   // s
-    const CONTAGION_DELAY_MAX = 3.0;   // s
-    const PREMOVEMENT_MEDIAN_NOALARM = 20.0; // s — pre-movimiento sin alarma
-    const PREMOVEMENT_MEDIAN_ALARM   = 6.0;  // s — pre-movimiento con alarma
-    const PREMOVEMENT_SIGMA   = 0.6;   // sigma de la lognormal
-    const PREMOVEMENT_MIN_T   = 2.0;   // s
-    const PREMOVEMENT_MAX_T   = 180.0; // s
+    const WALK_SPEED_MEAN     = 2.50;
+    const WALK_SPEED_SD       = 0.60;
+    const WALK_SPEED_MIN      = 1.50;
+    const WALK_SPEED_MAX      = 4.00;
+    const WANDER_SPEED_FACTOR = 0.65;
+    const CONTAGION_RADIUS    = 0.9;
+    const CONTAGION_DELAY_MIN = 1.0;
+    const CONTAGION_DELAY_MAX = 3.0;
+    const PREMOVEMENT_MEDIAN_NOALARM = 20.0;
+    const PREMOVEMENT_MEDIAN_ALARM   = 6.0;
+    const PREMOVEMENT_SIGMA   = 0.6;
+    const PREMOVEMENT_MIN_T   = 2.0;
+    const PREMOVEMENT_MAX_T   = 180.0;
 
-    /* ---------- Reducción de velocidad por humo (tipo Jin) ---------- */
-    const VIS_BREAKS  = [0.10, 0.25, 0.45, 0.70];        // fracciones de DENSITY_MAX
-    const VIS_FACTORS = [1.00, 0.80, 0.60, 0.40, 0.20];  // factor de velocidad
+    const VIS_BREAKS  = [0.10, 0.25, 0.45, 0.70];
+    const VIS_FACTORS = [1.00, 0.80, 0.60, 0.40, 0.20];
 
-    /* ---------- Desorientación y choques entre personas ---------- */
-    const PERSON_COLLISION_R   = 0.28;   // m  — radio de choque entre personas
-    const CONFUSION_CHANCE     = 0.03;   // prob. por segundo de desorientarse al evacuar
-    const CONFUSION_TIME_MIN   = 2.5;    // s  — duración mínima de la desorientación
-    const CONFUSION_TIME_MAX   = 6.0;    // s  — duración máxima de la desorientación
-    const CONFUSION_SAFE_R     = 3.5;    // m  — no se confunden cerca de la salida
-    const CONFUSION_COOLDOWN   = 6.0;    // s  — tras recuperarse, no vuelven a perderse
-    const LAB_ROOM_IDXS        = [0, 2, 3, 4]; // índices de salas que son laboratorios
+    const PERSON_COLLISION_R   = 0.28;
+    const CONFUSION_CHANCE     = 0.03;
+    const CONFUSION_TIME_MIN   = 2.5;
+    const CONFUSION_TIME_MAX   = 6.0;
+    const CONFUSION_SAFE_R     = 3.5;
+    const CONFUSION_COOLDOWN   = 6.0;
+    const LAB_ROOM_IDX_S       = [0, 2, 3, 4];
 
-    /* ---------- Utilidades estadísticas ---------- */
-    // Normal estándar por Box-Muller (media 0, desvío 1)
     function gaussianRandom() {
       let u = 0, v = 0;
       while (u === 0) u = Math.random();
       while (v === 0) v = Math.random();
       return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
     }
-
     function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
-
-    // Velocidad de caminata individual (m/s): normal truncada a [MIN, MAX]
     function sampleWalkSpeed() {
-      return clamp(WALK_SPEED_MEAN + gaussianRandom() * WALK_SPEED_SD,
-                   WALK_SPEED_MIN, WALK_SPEED_MAX);
+      return clamp(WALK_SPEED_MEAN + gaussianRandom() * WALK_SPEED_SD, WALK_SPEED_MIN, WALK_SPEED_MAX);
     }
-
-    // Tiempo de pre-movimiento (s): lognormal con la mediana indicada
     function samplePremovementTime(conAlarma) {
       const median = conAlarma ? PREMOVEMENT_MEDIAN_ALARM : PREMOVEMENT_MEDIAN_NOALARM;
       const t = median * Math.exp(PREMOVEMENT_SIGMA * gaussianRandom());
       return clamp(t, PREMOVEMENT_MIN_T, PREMOVEMENT_MAX_T);
     }
 
-    /* ---------- Barreras invisibles ---------- */
-    let windowsOpen = false;
     let alarmActive = false;
+    let autoBreakOnMortal = true;
 
     const BARRIERS = [
       { x1: 19.9, z1: -6.0,  x2: 20.9, z2: -15.0 },
@@ -467,11 +399,93 @@
       return t >= 0 && t <= 1 && u >= 0 && u <= 1;
     }
 
-    function wouldHitBarrier(px, pz, nx, nz) {
-      if (windowsOpen) return false;
+    const windowsList = [];
+    const doorsList = [];
+
+    function wouldHitBarrier(px, pz, nx, nz, py = 1.2) {
+      for (let i = 0; i < windowsList.length; i++) {
+        const w = windowsList[i];
+        if (w.isBroken) continue;
+        if (py >= w.sillY && py <= w.headerY) {
+          if (w.axis === 'X') {
+            if ((pz - w.centerZ) * (nz - w.centerZ) <= 0) {
+              const t = (w.centerZ - pz) / ((nz - pz) || 1e-6);
+              if (t >= 0 && t <= 1) {
+                const crossX = px + (nx - px) * t;
+                if (crossX >= w.minX && crossX <= w.maxX) {
+                  const openBoundary = w.maxX - (w.currentOpenRatio || 0) * w.width;
+                  if ((w.currentOpenRatio || 0) > 0.05 && crossX >= openBoundary && crossX <= w.maxX + 0.05) continue;
+                  return true;
+                }
+              }
+            }
+          } else {
+            if ((px - w.centerX) * (nx - w.centerX) <= 0) {
+              const t = (w.centerX - px) / ((nx - px) || 1e-6);
+              if (t >= 0 && t <= 1) {
+                const crossZ = pz + (nz - pz) * t;
+                if (crossZ >= w.minZ && crossZ <= w.maxZ) {
+                  const openBoundary = w.maxZ - (w.currentOpenRatio || 0) * w.width;
+                  if ((w.currentOpenRatio || 0) > 0.05 && crossZ >= openBoundary && crossZ <= w.maxZ + 0.05) continue;
+                  return true;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      for (let i = 0; i < doorsList.length; i++) {
+        const d = doorsList[i];
+        if (d.isOpen) continue;
+        if (py <= d.height) {
+          if (d.isDiagonal) {
+            if (segmentsIntersect(px, pz, nx, nz, d.jamb1X, d.jamb1Z, d.jamb2X, d.jamb2Z)) return true;
+          } else if (d.axis === 'X') {
+            if ((pz - d.centerZ) * (nz - d.centerZ) <= 0) {
+              const t = (d.centerZ - pz) / ((nz - pz) || 1e-6);
+              if (t >= 0 && t <= 1) {
+                const crossX = px + (nx - px) * t;
+                if (crossX >= d.minX && crossX <= d.maxX) return true;
+              }
+            }
+          } else {
+            if ((px - d.centerX) * (nx - d.centerX) <= 0) {
+              const t = (d.centerX - px) / ((nx - px) || 1e-6);
+              if (t >= 0 && t <= 1) {
+                const crossZ = pz + (nz - pz) * t;
+                if (crossZ >= d.minZ && crossZ <= d.maxZ) return true;
+              }
+            }
+          }
+        }
+      }
+
       for (let b = 0; b < BARRIERS.length; b++) {
         const bar = BARRIERS[b];
-        if (segmentsIntersect(px, pz, nx, nz, bar.x1, bar.z1, bar.x2, bar.z2)) return true;
+        if (segmentsIntersect(px, pz, nx, nz, bar.x1, bar.z1, bar.x2, bar.z2)) {
+          let escapeThroughWindow = false;
+          for (let w of windowsList) {
+            if (w.isBroken || (w.currentOpenRatio || 0) > 0.05) {
+              if (w.axis === 'Z') {
+                if (Math.abs(bar.x1 - w.centerX) < 0.9) {
+                  const crossZ = pz + (nz - pz) * 0.5;
+                  if (w.isBroken && crossZ >= w.minZ && crossZ <= w.maxZ) { escapeThroughWindow = true; break; }
+                  const openBoundary = w.maxZ - (w.currentOpenRatio || 0) * w.width;
+                  if (crossZ >= openBoundary && crossZ <= w.maxZ + 0.05) { escapeThroughWindow = true; break; }
+                }
+              } else {
+                if (Math.abs(bar.z1 - w.centerZ) < 0.9) {
+                  const crossX = px + (nx - px) * 0.5;
+                  if (w.isBroken && crossX >= w.minX && crossX <= w.maxX) { escapeThroughWindow = true; break; }
+                  const openBoundary = w.maxX - (w.currentOpenRatio || 0) * w.width;
+                  if (crossX >= openBoundary && crossX <= w.maxX + 0.05) { escapeThroughWindow = true; break; }
+                }
+              }
+            }
+          }
+          if (!escapeThroughWindow) return true;
+        }
       }
       return false;
     }
@@ -496,9 +510,6 @@
     ];
     ROOMS.forEach(r => r.estado = 'Normal');
 
-    /* ============================================================
-       MENÚ HAMBURGUESA MÓVIL
-       ============================================================ */
     const btnMenu = document.getElementById('btn-menu');
     const uiOverlay = document.getElementById('ui-overlay');
 
@@ -508,14 +519,9 @@
       btnMenu.textContent = open ? '✕' : '☰';
       btnMenu.setAttribute('aria-label', open ? 'Cerrar menú' : 'Abrir menú');
     }
-
-    btnMenu.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleMenu();
-    });
+    btnMenu.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(); });
     uiOverlay.addEventListener('click', () => toggleMenu(false));
 
-    /* ---------- Escena base ---------- */
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xd9dfe5);
 
@@ -536,10 +542,7 @@
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.1;
-    controls.touches = {
-      ONE: THREE.TOUCH.ROTATE,
-      TWO: THREE.TOUCH.DOLLY_PAN
-    };
+    controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.85));
     const sun = new THREE.DirectionalLight(0xffffff, 0.9);
@@ -555,20 +558,13 @@
     sun.shadow.camera.bottom = -40;
     scene.add(sun);
 
-    /* ============================================================
-       CONSTRUCCIÓN DEL MODELO
-       ============================================================ */
     const meshes = [{"v":3,"s":1000,"p":[18840,1000,-13537,18841,1000,-13413,20469,1000,-13559,20471,1000,-13436,20469,0,-13559,20471,0,-13436,18840,0,-13537,18841,0,-13413,14731,0,-13362,14731,1000,-13362,14731,0,-13353,14731,2830,-13353,14730,1000,-13422,14727,2830,-13591,14727,0,-13591,14730,0,-13422,3634,2150,-8931,3913,2150,-8931,3634,0,-8931,3913,0,-8931,3634,0,-9881,3913,0,-9881,3634,2150,-9881,3913,2150,-9881,3913,0,-8538,3913,2600,-8538,3913,2686,-8533,3913,2600,-8533,3913,2686,-10142,3913,0,-10142,3634,2600,-8533,3634,2686,-8533,5498,0,-8560,5498,2600,-8560,3634,2600,-8534,3634,0,-8534,301,2600,-8488,301,0,-8488,7928,1991,-15601,7928,1991,-16089,7928,724,-15601,7928,724,-16089,5489,724,-15602,5489,724,-16089,5489,1991,-15602,5489,1991,-16089,11904,1991,-15600,11904,1991,-16089,11904,724,-15600,11904,724,-16089,9465,724,-15601,9465,724,-16089,9465,1991,-15601,9465,1991,-16089,3270,1991,-15603,3270,1991,-16089,3270,724,-15603,3270,724,-16089,831,724,-15603,831,724,-16089,831,1991,-15603,831,1991,-16089,3679,0,-8284,3679,2600,-8284,304,0,-8237,304,2600,-8237,415,2600,-254,415,0,-254,168,0,0,168,2600,0,50,0,-8484,50,2600,-8484,3664,2600,-299,3664,0,-299,3918,0,-52,3918,2600,-52,3657,2600,-760,3657,0,-760,3908,0,-764,3908,2600,-764,3783,2600,-762,3783,0,-762,301,2600,-8484,50,2686,-8484,301,2686,-8484,301,2686,-15604,301,0,-15604,14585,2686,-16089,14534,2686,-15599,14585,2830,-16089,14534,2830,-15599,20450,150,-10122,20045,150,-9904,20450,0,-10122,20045,0,-9904,20045,2830,-9904,20385,150,-9822,20357,150,-9563,20385,0,-9822,20329,0,-9304,20329,2150,-9304,20357,2830,-9563,20329,2830,-9304,20793,400,-13376,20547,400,-13402,20619,400,-11713,20373,400,-11738,20547,0,-13402,20793,0,-13376,20373,0,-11738,20619,0,-11713,20619,2150,-11713,20373,2150,-11738,20371,0,-11739,20371,2830,-11739,20373,2830,-11738,20793,2150,-13376,20547,2150,-13402,20793,2830,-13376,20619,2830,-11713,20038,150,-9833,20038,0,-9833,20043,150,-9880,20043,2830,-9880,20083,2830,-9329,20080,2830,-9330,20083,2150,-9329,20080,0,-9330,20083,400,-9329,20083,0,-9329,20107,0,-9581,20107,2830,-9581,19760,0,-9592,19760,2830,-9592,19810,0,-10061,19810,2830,-10061,20216,0,-10280,20216,2830,-10280,20450,2830,-10122,19912,400,-7691,20154,400,-7665,20330,400,-9303,20155,400,-7640,20152,400,-7641,20152,0,-7641,20155,0,-7640,20330,0,-9303,19912,0,-7691,20154,2150,-7665,19912,2150,-7691,19905,0,-7692,19905,2830,-7692,19912,2830,-7691,20024,0,-6452,19799,0,-6702,13079,0,-6452,13079,0,-6702,20152,2150,-7641,20155,2150,-7640,20152,2830,-7641,20155,2830,-7640,20024,2830,-6452,12151,0,-7856,12151,2150,-7856,11902,0,-7864,11902,2830,-7864,12151,2830,-7856,11959,0,-9884,11959,2600,-9884,12003,2830,-11473,12003,0,-11473,12253,0,-11466,12253,2830,-11466,20551,0,-13437,20551,2830,-13437,20471,2830,-13436,20829,2830,-13691,20829,0,-13691,20577,0,-13687,20468,0,-13686,20577,2830,-13687,20468,2830,-13686,20796,0,-13376,20796,2830,-13376,20709,2830,-14954,20709,0,-14954,21009,0,-15418,21009,2830,-15418,17942,2830,-13649,17919,2830,-15246,17942,0,-13649,17919,0,-15246,14784,0,-15573,14784,2830,-15573,18131,0,-15223,18131,2830,-15223,14585,0,-16089,14534,0,-15599,14478,0,-13598,14478,2830,-13598,14481,2830,-13598,14481,0,-13598,14625,0,-13351,14625,2830,-13351,14381,0,-13597,14381,2830,-13597,14349,0,-12442,14349,2830,-12442,12032,0,-12508,12032,2830,-12508,12275,0,-12251,12275,2830,-12251,14592,0,-12186,14592,2830,-12186,18157,2830,-13402,18157,0,-13402,17941,0,-13649,17945,0,-13399,17941,2830,-13649,17945,2830,-13399,12239,2150,-6702,12239,2150,-6452,12239,0,-6702,12239,0,-6452,11879,0,-7042,11862,0,-6452,11879,2150,-7042,11862,2600,-6452,11879,2830,-7042,11862,2830,-6452,12128,0,-7034,12128,2830,-7034,12119,0,-6702,12119,2830,-6702,12128,2150,-7035,11902,2150,-7862,11902,2830,-7862,12128,2830,-7035,13079,2150,-6452,13079,2150,-6702,19799,2830,-6702,20389,150,-9559,20389,2830,-9559,0,2686,-16089,0,0,-16089,3634,0,-15603,3634,2686,-15603,3915,2686,-15602,3915,0,-15602,14729,0,-13486,14729,1000,-13486,17138,1000,-13396,17136,1000,-13519,17138,0,-13396,17136,0,-13519,17138,0,-13387,17138,2830,-13387,17137,2830,-13512,17137,0,-13512,17163,0,-13513,17163,2830,-13513,17165,0,-13388,17165,2830,-13388,4030,2600,-979,3930,2600,-8163,5253,2600,-8181,5750,2600,-8440,5496,2600,-8687,9909,2600,-8748,9662,2600,-8494,9920,2600,-7969,9673,2600,-7715,11844,2600,-7745,5073,2600,-993,5326,2600,-783,5285,2600,-3770,6064,2600,-3781,5811,2600,-4027,5032,2600,-4017,6028,2600,-6371,5778,2600,-6367,5775,2600,-6617,5527,2600,-6614,6025,2600,-6621,11859,2600,-6701,5756,2600,-7940,6003,2600,-8194,5753,2600,-8190,5509,2600,-7937,11841,2600,-7995,5259,2600,-7933,5280,2600,-6360,5257,2600,-7933,3723,1200,-5086,3716,0,-5586,3764,1200,-2086,3716,2100,-5586,3723,2100,-5086,3764,2100,-2086,3702,2100,-6586,3702,0,-6586,10030,2150,-9061,10081,2150,-9029,10030,0,-9061,10081,0,-9029,10414,0,-9714,10471,0,-9668,10414,2150,-9714,10471,2150,-9668,10626,0,-9921,10583,0,-10002,11961,0,-10001,9909,0,-8748,9847,0,-8749,10626,2600,-9921,9847,2600,-8749,10583,2600,-10002,11961,2600,-10001,8427,2150,-8727,8427,2150,-8477,8427,0,-8727,8427,0,-8477,9267,0,-8739,9267,0,-8489,9267,2150,-8739,9267,2150,-8489,5750,0,-8440,9662,0,-8494,9920,0,-7969,11841,0,-7995,11844,0,-7745,9673,0,-7715,3952,0,-6589,3952,2100,-6589,3966,2100,-5589,3966,0,-5589,3973,2100,-5089,4014,2100,-2089,3973,1200,-5089,4014,1200,-2089,5496,0,-8687,5253,0,-8181,3930,0,-8163,5753,0,-8190,5509,0,-7937,5259,0,-7933,5509,0,-7887,5259,0,-7883,5756,0,-7940,6003,0,-8194,6007,0,-7894,5757,0,-7890,5257,0,-7933,4030,0,-979,4180,0,-981,4183,0,-768,11859,0,-6701,6025,1861,-6621,6025,0,-6621,5278,0,-6510,5278,1861,-6510,6026,0,-6520,6026,1861,-6520,5757,1861,-7890,6007,1861,-7894,5509,1861,-7887,5259,1861,-7883,5527,1861,-6614,5775,1861,-6617,4980,2000,-992,4983,2000,-779,4180,2000,-981,4183,2000,-768,4980,0,-992,4983,0,-779,5280,0,-6360,5073,0,-993,6028,0,-6371,6064,0,-3781,5811,0,-4027,5778,0,-6367,5285,0,-3770,5032,0,-4017,5326,0,-783,18817,0,-13537,18818,0,-13412,18817,2830,-13537,18818,2830,-13412,18840,2830,-13537,18841,0,-13412,18841,2830,-13412],"i":[0,1,2,2,1,3,4,5,6,6,5,7,3,5,2,2,5,4,1,7,3,3,7,5,0,6,1,1,6,7,2,4,0,0,4,6,8,9,10,10,9,11,11,9,12,11,12,13,13,12,14,14,12,15,16,17,18,18,17,19,20,21,22,22,21,23,22,23,16,16,23,17,19,17,24,24,17,25,25,17,26,25,26,27,26,17,28,28,17,23,28,23,29,29,23,21,27,26,30,30,26,31,24,25,32,32,25,33,34,35,36,36,35,37,38,39,40,40,39,41,40,41,42,42,41,43,42,43,44,44,43,45,38,44,39,39,44,45,46,47,48,48,47,49,48,49,50,50,49,51,50,51,52,52,51,53,46,52,47,47,52,53,54,55,56,56,55,57,56,57,58,58,57,59,58,59,60,60,59,61,54,60,55,55,60,61,62,63,64,64,63,65,66,67,65,65,67,64,68,69,70,70,69,71,72,73,66,66,73,67,74,75,68,68,75,69,76,77,72,72,77,73,78,79,74,74,79,75,80,81,76,76,81,77,71,82,83,83,82,84,82,36,84,84,36,85,85,36,86,86,36,37,87,88,89,89,88,90,91,92,93,93,92,94,94,92,95,96,97,98,98,97,99,99,97,100,100,97,101,100,101,102,103,104,105,105,104,106,107,104,108,108,104,103,109,106,107,107,106,104,108,103,110,110,103,105,111,105,112,112,105,106,112,106,113,113,106,109,113,114,112,112,114,115,111,112,116,116,112,117,118,119,116,116,119,111,120,121,122,122,121,94,122,94,95,95,123,122,120,96,121,121,96,98,124,125,126,126,125,127,126,127,128,128,127,129,129,99,128,128,99,100,128,100,126,130,127,131,131,127,125,132,130,133,133,130,131,134,132,135,135,132,133,136,134,137,137,134,135,113,136,114,114,136,137,93,110,91,91,110,105,91,105,111,119,138,111,111,138,91,93,109,110,110,109,107,110,107,108,94,136,93,93,136,113,93,113,109,136,94,134,134,94,121,134,121,132,132,121,130,130,121,98,130,98,99,99,129,130,130,129,127,139,140,128,128,140,141,141,140,142,142,140,143,143,144,142,142,144,145,129,128,146,146,128,141,147,139,129,129,139,128,146,141,145,145,141,142,148,140,149,149,140,139,149,139,150,150,139,147,150,151,149,149,151,152,129,146,147,147,146,145,147,145,144,153,154,144,144,154,150,144,150,147,153,155,154,154,155,156,157,148,158,158,148,100,100,148,126,126,148,149,152,124,149,149,124,126,157,158,159,159,158,160,102,160,100,100,160,158,140,148,143,143,148,157,143,157,153,153,157,161,161,157,159,153,144,143,162,163,164,164,163,165,165,163,166,167,164,168,168,164,165,168,165,169,169,170,168,168,170,167,162,171,163,163,171,172,163,172,166,5,173,3,3,173,174,3,174,175,178,179,180,180,179,181,5,3,179,179,3,181,181,3,175,182,177,183,183,177,176,180,184,178,178,184,185,177,186,176,176,186,187,188,189,190,190,189,191,191,189,192,192,189,193,185,184,194,194,184,195,89,187,87,87,187,186,87,186,196,193,13,192,192,13,14,197,198,88,88,198,199,88,199,90,200,199,201,201,199,198,202,10,203,203,10,11,201,204,200,200,204,205,204,206,205,205,206,207,206,208,207,207,208,209,208,170,209,209,170,169,171,210,172,172,210,211,210,212,211,211,212,213,212,202,213,213,202,203,195,214,194,194,214,215,115,174,117,117,174,173,117,173,104,104,173,107,117,112,115,117,104,116,116,104,182,116,182,183,104,107,182,183,118,116,216,217,218,218,217,219,190,216,188,188,216,218,217,215,219,219,215,214,220,221,222,222,221,223,224,225,226,226,225,227,226,227,228,228,227,229,224,226,230,230,226,231,231,226,228,232,230,233,233,230,231,230,232,224,224,232,225,225,232,223,223,232,222,234,226,163,163,226,235,166,236,237,237,236,228,228,226,237,237,226,234,236,235,228,228,235,226,166,163,236,236,163,235,237,234,166,166,234,163,238,227,221,221,227,225,221,225,223,155,153,238,238,153,161,238,161,229,229,227,238,221,220,238,238,220,239,238,239,155,155,239,156,240,239,233,233,239,220,233,220,232,232,220,222,240,154,239,239,154,156,150,154,151,151,154,240,122,92,96,96,92,91,96,91,241,241,97,96,96,120,122,123,138,95,95,138,137,95,137,135,95,135,123,123,135,133,123,133,131,138,119,137,137,119,115,137,115,114,119,118,115,115,118,174,174,118,176,174,176,180,180,176,184,184,176,187,184,187,195,195,187,189,195,189,188,118,183,176,187,89,189,189,89,193,193,89,90,193,90,200,200,90,199,205,203,200,200,203,13,200,13,193,205,207,203,203,207,213,213,207,211,211,207,209,211,209,169,211,169,172,172,169,165,172,165,166,203,11,13,218,219,188,188,219,214,188,214,195,180,181,174,174,181,175,125,124,131,131,124,102,131,102,101,124,152,102,102,152,159,102,159,160,151,240,152,152,240,159,159,240,161,161,240,233,161,233,229,229,233,228,228,233,231,242,138,101,101,138,123,101,123,131,242,241,138,138,241,91,101,97,242,242,97,241,95,92,123,123,92,122,83,243,71,71,243,244,71,244,70,60,85,58,58,85,86,58,86,245,85,60,246,246,60,54,246,54,56,246,56,245,245,56,58,18,35,16,16,35,34,16,34,22,22,34,31,22,31,246,34,30,31,246,245,22,22,245,20,247,28,248,248,28,29,44,247,42,42,247,248,42,248,40,40,248,50,40,50,38,38,50,52,38,52,247,247,52,88,88,52,46,88,46,48,44,38,247,88,48,197,197,48,50,197,50,248,43,57,45,45,57,55,45,55,243,243,55,61,243,61,59,57,43,244,244,43,41,244,41,196,196,41,51,196,51,49,51,41,53,53,41,39,53,39,87,87,39,243,243,39,45,196,49,87,87,49,47,87,47,53,243,59,244,244,59,57,26,28,31,31,28,246,246,28,247,246,247,243,243,247,87,87,247,88,246,243,85,85,243,83,85,83,84,15,12,249,249,12,250,9,251,12,12,251,252,12,252,250,251,253,252,252,253,254,9,8,251,251,8,253,252,254,250,250,254,249,253,255,251,251,255,256,251,256,257,257,258,251,251,258,253,259,258,260,260,258,257,261,259,262,262,259,260,255,261,256,256,261,262,255,253,261,261,253,259,259,253,258,262,260,256,256,260,257,80,263,63,63,263,264,63,264,27,27,264,265,27,265,25,25,265,33,33,265,266,33,266,267,267,266,268,268,266,269,268,269,270,270,269,271,270,271,272,76,72,80,80,72,79,80,79,263,263,79,273,273,79,274,273,274,275,79,72,75,75,72,66,75,66,69,69,66,65,69,65,71,71,65,82,82,65,30,82,30,36,36,30,34,65,63,30,30,63,27,276,277,275,275,277,278,275,278,273,276,279,277,277,279,280,280,279,281,280,281,282,281,279,283,283,279,227,283,227,284,281,283,285,285,283,286,285,286,287,266,265,287,287,265,288,287,288,285,272,289,270,288,290,282,282,290,291,282,291,280,292,290,265,265,290,288,293,294,295,295,294,81,295,81,80,294,293,296,296,293,297,296,297,63,63,297,80,80,297,298,80,298,295,296,63,299,299,63,62,299,62,300,301,302,303,303,302,304,305,306,307,307,306,308,301,307,302,302,307,308,306,305,309,309,305,310,309,310,311,311,167,309,304,312,303,303,312,313,304,302,312,312,302,268,268,302,314,314,302,308,314,308,309,309,308,306,313,312,315,315,312,268,303,313,301,301,313,315,301,315,316,301,316,307,307,316,310,307,310,305,311,310,317,317,310,316,167,311,168,168,311,317,309,167,314,314,167,168,268,314,315,315,314,316,316,314,317,317,314,168,318,319,320,320,319,321,322,323,324,324,323,325,324,325,318,318,325,319,321,319,326,326,319,266,266,319,269,269,319,325,269,325,327,327,325,323,323,322,327,327,322,312,327,312,328,329,330,328,328,330,331,328,331,327,332,333,300,300,333,299,333,334,299,299,334,296,334,335,296,296,335,294,336,337,297,297,337,298,338,336,293,293,336,297,339,338,295,295,338,293,337,339,298,298,339,295,340,326,32,32,326,341,32,341,24,24,341,342,24,342,62,62,342,300,300,342,332,340,320,326,326,320,321,326,343,341,341,343,344,341,344,345,345,344,346,345,346,347,344,343,348,348,343,349,348,349,350,350,351,348,345,352,341,24,62,35,35,62,64,35,64,37,37,64,70,37,70,86,86,70,244,86,244,245,245,244,248,245,248,29,70,64,68,68,64,67,68,67,73,77,81,73,73,81,78,73,78,74,78,81,353,353,81,294,353,294,335,354,355,353,353,355,78,74,68,73,244,196,248,248,196,197,197,196,192,197,192,198,198,192,201,201,192,14,201,14,15,192,196,191,191,196,186,191,186,194,194,186,185,185,186,177,185,177,178,178,177,173,178,173,179,179,173,5,177,182,173,182,107,173,191,194,190,190,194,215,190,215,217,217,216,190,249,254,15,15,254,253,15,253,8,10,202,8,8,202,15,212,206,202,202,206,204,202,204,201,212,210,206,206,210,208,208,210,170,170,210,171,170,171,167,167,171,162,167,162,164,21,20,29,29,20,245,35,18,24,24,18,19,201,15,202,329,289,330,330,289,272,356,284,225,225,284,227,283,284,357,357,284,356,357,356,358,272,271,330,330,271,331,359,360,361,361,360,362,351,350,363,363,350,364,365,366,346,346,366,347,361,362,358,358,362,357,365,367,366,366,367,360,360,367,362,362,367,368,362,368,357,357,368,363,357,363,364,369,370,371,371,370,372,371,372,354,354,372,355,369,373,370,370,373,374,347,366,345,345,366,290,290,366,360,290,360,291,291,360,375,375,360,359,373,369,376,376,369,273,273,369,371,273,371,263,263,371,353,353,371,354,358,356,361,361,356,225,361,225,377,378,379,377,377,379,380,377,380,361,361,380,359,359,380,375,378,381,379,379,381,382,382,381,376,376,381,383,376,383,374,374,373,376,78,372,79,79,372,370,79,370,274,274,370,383,383,370,374,78,355,372,329,328,289,289,328,270,368,367,281,281,367,282,227,279,225,225,279,377,343,326,287,287,326,266,33,267,32,32,267,340,271,269,331,331,269,327,346,344,365,365,344,288,365,288,282,282,367,365,320,340,318,318,340,267,318,267,268,318,268,324,324,268,312,324,312,322,328,312,270,270,312,268,280,291,380,380,291,375,380,379,280,280,379,277,279,276,377,377,276,378,290,292,345,345,292,352,344,348,288,288,348,285,278,277,382,382,277,379,273,278,376,376,278,382,332,342,333,333,342,264,333,264,334,334,264,336,334,336,338,264,263,336,336,263,337,337,263,339,339,263,353,339,353,335,339,335,338,338,335,334,265,264,341,341,264,342,292,265,352,352,265,341,368,281,363,363,281,285,363,285,348,348,351,363,350,349,364,364,349,286,364,286,283,283,357,364,381,378,275,275,378,276,383,381,274,274,381,275,287,286,343,343,286,349,384,385,386,386,385,387,6,384,0,0,384,386,0,386,388,6,0,389,389,0,390,390,0,388,385,389,387,387,389,390,389,385,6,6,385,384,390,388,387,387,388,386],"color":16777215,"metalness":1,"roughness":1,"side":0}];
-
-
-    if (!meshes || !meshes.length) console.error("No se encontró el array de mallas.");
 
     const model = new THREE.Group();
     model.name = 'Laboratorio';
 
     for (const m of meshes) {
       const geom = new THREE.BufferGeometry();
-
       if (m.p && m.i) {
         const scale = m.s || 1000;
         const srcPos = m.p;
@@ -578,25 +574,14 @@
         }
         geom.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
         geom.setIndex(m.i);
-      } else if (m.positions) {
-        geom.setAttribute('position', new THREE.Float32BufferAttribute(m.positions, 3));
-        if (m.normals && m.normals.length) {
-          geom.setAttribute('normal', new THREE.Float32BufferAttribute(m.normals, 3));
-        }
-        if (m.uvs && m.uvs.length) {
-          geom.setAttribute('uv', new THREE.Float32BufferAttribute(m.uvs, 2));
-        }
-        if (m.indices) geom.setIndex(m.indices);
       }
-
       const mat = new THREE.MeshStandardMaterial({
-        color:     m.color     ?? 0xe8e8e8,
+        color: m.color ?? 0xe8e8e8,
         roughness: m.roughness ?? 0.9,
-        metalness:  0.5,
+        metalness: 0.5,
         side: THREE.DoubleSide,
         flatShading: true
       });
-
       const mesh = new THREE.Mesh(geom, mat);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
@@ -615,7 +600,6 @@
     controls.target.copy(center);
     controls.update();
 
-    /* ---------- Suelo dinámico ---------- */
     const gridMargin = 2;
     const floorWidth  = size.x + gridMargin * 2;
     const floorDepth  = size.z + gridMargin * 2;
@@ -641,7 +625,6 @@
     grid.material.transparent = true;
     scene.add(grid);
 
-    /* ---------- Cámara Minimapa ---------- */
     const mapSizeView = Math.max(floorWidth, floorDepth) / 2 + 1.5;
     const mapCamera = new THREE.OrthographicCamera(
       -mapSizeView, mapSizeView, mapSizeView, -mapSizeView, 0.1, 100
@@ -649,9 +632,6 @@
     mapCamera.position.set(floorCenterX, 50, floorCenterZ);
     mapCamera.lookAt(floorCenterX, 0, floorCenterZ);
 
-    /* ============================================================
-       LETREROS DE SALIDA Y PUNTOS DE ESCAPE
-       ============================================================ */
     const EXITS = [
       { x: 4.62, z: 0 },
       { x: 12.5, z: -5.5 }
@@ -662,14 +642,11 @@
       canvas.width  = 512;
       canvas.height = 256;
       const ctx = canvas.getContext('2d');
-
       ctx.fillStyle = '#009933';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 16;
       ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
-
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 140px Arial, Helvetica, sans-serif';
       ctx.textAlign = 'center';
@@ -697,7 +674,6 @@
       sign.castShadow = false;
       sign.receiveShadow = false;
       sign.layers.set(0);
-
       scene.add(sign);
       return sign;
     }
@@ -705,21 +681,6 @@
     createExitSign(4.62, -0.7, 0);
     createExitSign(12.5, -6.4, 0);
 
-    /* ---------- DEBUG: visualizar barreras ---------- */
-    const SHOW_BARRIERS = false;
-    if (SHOW_BARRIERS) {
-      for (const b of BARRIERS) {
-        const pts = [
-          new THREE.Vector3(b.x1, 0.05, b.z1),
-          new THREE.Vector3(b.x2, 0.05, b.z2)
-        ];
-        const g = new THREE.BufferGeometry().setFromPoints(pts);
-        const line = new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0xff0000 }));
-        scene.add(line);
-      }
-    }
-
-    /* ---------- Zonas interiores ---------- */
     const INNER_ROOMS = [
       { minX: 13.3, maxX: 20.4, minZ: -13.3, maxZ: -6.7, roomIdx: 0 },
       { minX: 5.8,  maxX: 12.8, minZ: -8.3,  maxZ: -5.0, roomIdx: 1 },
@@ -748,7 +709,6 @@
       return 'Normal';
     }
 
-    /* ---------- Escáner de colisiones ---------- */
     let insideGrid = null;
     let walkableList = [];
 
@@ -765,7 +725,6 @@
       ];
 
       const queue = [];
-
       seeds.forEach(s => {
         const i = Math.floor((s.x - gridMinX) / GRID_RES);
         const j = Math.floor((s.z - gridMinZ) / GRID_RES);
@@ -784,7 +743,6 @@
         const cj = queue[head++];
         const cx = gridMinX + ci * GRID_RES;
         const cz = gridMinZ + cj * GRID_RES;
-
         walkableList.push({ x: cx, z: cz });
 
         const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -793,7 +751,6 @@
           const nj = cj + dirs[d][1];
           const nx = gridMinX + ni * GRID_RES;
           const nz = gridMinZ + nj * GRID_RES;
-
           if (ni >= 0 && ni < gridStepsX && nj >= 0 && nj < gridStepsZ && isInsideRoomGeometry(nx, nz)) {
             const nidx = ni + nj * gridStepsX;
             if (collisionGrid[nidx] === 0 && insideGrid[nidx] === 0) {
@@ -856,9 +813,6 @@
     }
     buildCollisionMap();
 
-    /* ============================================================
-       CAMPO DE FLUJO MULTIFUENTE HACIA LAS SALIDAS
-       ============================================================ */
     let exitDistField = null;
 
     function buildExitField() {
@@ -944,7 +898,6 @@
       return { x: bestDx / len, z: bestDz / len };
     }
 
-    /* ---------- Techo invisible ---------- */
     const altoParedes = Math.max(bbox.max.y, 2.8);
     const ceilingGeo = new THREE.PlaneGeometry(floorWidth, floorDepth);
     ceilingGeo.rotateX(Math.PI / 2);
@@ -955,15 +908,831 @@
     ceiling.position.set(floorCenterX, altoParedes, floorCenterZ);
     scene.add(ceiling);
 
-    /* ============================================================
-       SISTEMA DE COMPUTADORAS Y PUESTOS
-       ============================================================ */
+    /* AUDIO */
+    let audioCtx = null;
+
+    function playGlassShatterSound() {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const t0 = audioCtx.currentTime;
+        const bufferSize = Math.floor(audioCtx.sampleRate * 0.35);
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.08));
+        }
+        const whiteNoise = audioCtx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.setValueAtTime(2200, t0);
+        filter.frequency.exponentialRampToValueAtTime(4500, t0 + 0.3);
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.45, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.35);
+
+        whiteNoise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        whiteNoise.start(t0);
+
+        [3400, 4900, 6800, 8900].forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const oscGain = audioCtx.createGain();
+          osc.type = 'sine';
+          const delay = t0 + 0.02 * idx + Math.random() * 0.04;
+          osc.frequency.setValueAtTime(freq + (Math.random() - 0.5) * 400, delay);
+          oscGain.gain.setValueAtTime(0.09, delay);
+          oscGain.gain.exponentialRampToValueAtTime(0.0001, delay + 0.18 + Math.random() * 0.12);
+          osc.connect(oscGain);
+          oscGain.connect(audioCtx.destination);
+          osc.start(delay);
+          osc.stop(delay + 0.35);
+        });
+      } catch (err) {}
+    }
+
+    function playWindowSlideSound(isOpen) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const t0 = audioCtx.currentTime;
+        const dur = 0.26;
+        const bufferSize = Math.floor(audioCtx.sampleRate * dur);
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = noiseBuffer;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(isOpen ? 750 : 580, t0);
+        filter.frequency.exponentialRampToValueAtTime(isOpen ? 1150 : 420, t0 + dur);
+        filter.Q.value = 3.2;
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.001, t0);
+        gain.gain.linearRampToValueAtTime(0.14, t0 + dur * 0.35);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        noise.start(t0);
+      } catch (err) {}
+    }
+
+    function playDoorSound(isOpen) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const t0 = audioCtx.currentTime;
+
+        const osc = audioCtx.createOscillator();
+        const oscGain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(isOpen ? 520 : 380, t0);
+        osc.frequency.exponentialRampToValueAtTime(isOpen ? 280 : 180, t0 + 0.07);
+        oscGain.gain.setValueAtTime(0.18, t0);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.08);
+        osc.connect(oscGain);
+        oscGain.connect(audioCtx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.09);
+
+        const bufferSize = Math.floor(audioCtx.sampleRate * 0.22);
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (audioCtx.sampleRate * 0.06));
+        }
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = noiseBuffer;
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(isOpen ? 650 : 420, t0);
+        filter.Q.value = 2.5;
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.12, t0);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.22);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        noise.start(t0);
+      } catch (err) {}
+    }
+
+    /* VIDRIOS */
+    const glassShards = [];
+
+    function detectAndBuildWindows() {
+      const sills = [];
+      const headers = [];
+
+      model.traverse((child) => {
+        if (!child.isMesh || !child.geometry) return;
+        const pos = child.geometry.attributes.position;
+        const index = child.geometry.index;
+        if (!pos || !index) return;
+
+        const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+        const ab = new THREE.Vector3(), ac = new THREE.Vector3(), norm = new THREE.Vector3();
+
+        for (let t = 0; t < index.count; t += 3) {
+          const i0 = index.getX(t);
+          const i1 = index.getX(t + 1);
+          const i2 = index.getX(t + 2);
+          a.fromBufferAttribute(pos, i0);
+          b.fromBufferAttribute(pos, i1);
+          c.fromBufferAttribute(pos, i2);
+
+          if (Math.abs(a.y - b.y) < 0.002 && Math.abs(b.y - c.y) < 0.002) {
+            ab.subVectors(b, a);
+            ac.subVectors(c, a);
+            norm.crossVectors(ab, ac);
+            const y = a.y;
+
+            if (norm.y > 0.001 && y > 0.25 && y < 2.50) {
+              const xs = [a.x, b.x, c.x];
+              const zs = [a.z, b.z, c.z];
+              sills.push({ y: y, minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs) });
+            } else if (norm.y < -0.001 && y > 1.40 && y < 2.90) {
+              const xs = [a.x, b.x, c.x];
+              const zs = [a.z, b.z, c.z];
+              headers.push({ y: y, minX: Math.min(...xs), maxX: Math.max(...xs), minZ: Math.min(...zs), maxZ: Math.max(...zs) });
+            }
+          }
+        }
+      });
+
+      const clusters = [];
+      for (const s of sills) {
+        let merged = false;
+        for (const cl of clusters) {
+          if (Math.abs(cl.y - s.y) < 0.02) {
+            if (!(s.minX > cl.maxX + 0.15 || s.maxX < cl.minX - 0.15 ||
+                  s.minZ > cl.maxZ + 0.15 || s.maxZ < cl.minZ - 0.15)) {
+              cl.minX = Math.min(cl.minX, s.minX);
+              cl.maxX = Math.max(cl.maxX, s.maxX);
+              cl.minZ = Math.min(cl.minZ, s.minZ);
+              cl.maxZ = Math.max(cl.maxZ, s.maxZ);
+              merged = true;
+              break;
+            }
+          }
+        }
+        if (!merged) {
+          clusters.push({ y: s.y, minX: s.minX, maxX: s.maxX, minZ: s.minZ, maxZ: s.maxZ });
+        }
+      }
+
+      const glassMaterial = new THREE.MeshStandardMaterial({
+        color: 0x9be0ff, roughness: 0.08, metalness: 0.15,
+        transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false
+      });
+      const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x222226, roughness: 0.5, metalness: 0.7 });
+      const sashFrameMaterial = new THREE.MeshStandardMaterial({ color: 0x2e3238, roughness: 0.45, metalness: 0.75 });
+      const crackedMaterial = new THREE.MeshStandardMaterial({
+        color: 0x88ccff, roughness: 0.2, metalness: 0.3,
+        transparent: true, opacity: 0.55, side: THREE.DoubleSide
+      });
+
+      clusters.forEach((cl, index) => {
+        const dx = cl.maxX - cl.minX;
+        const dz = cl.maxZ - cl.minZ;
+        if (Math.max(dx, dz) < 0.5) return;
+
+        let headerY = 2.83;
+        let bestArea = 0;
+        for (const h of headers) {
+          if (h.y > cl.y + 0.35) {
+            const ox = Math.max(0, Math.min(cl.maxX, h.maxX) - Math.max(cl.minX, h.minX));
+            const oz = Math.max(0, Math.min(cl.maxZ, h.maxZ) - Math.max(cl.minZ, h.minZ));
+            if (ox * oz > bestArea) { bestArea = ox * oz; headerY = h.y; }
+          }
+        }
+
+        const axis = (dx >= dz) ? 'X' : 'Z';
+        const width = (axis === 'X') ? dx : dz;
+        const wallThick = (axis === 'X') ? dz : dx;
+        const height = headerY - cl.y;
+        const centerX = (cl.minX + cl.maxX) / 2;
+        const centerY = (cl.y + headerY) / 2;
+        const centerZ = (cl.minZ + cl.maxZ) / 2;
+
+        let roomBelong = null;
+        for (let r = 0; r < ROOMS.length; r++) {
+          const rm = ROOMS[r];
+          if (centerX >= rm.minX - 0.8 && centerX <= rm.maxX + 0.8 &&
+              centerZ >= rm.minZ - 0.8 && centerZ <= rm.maxZ + 0.8) {
+            roomBelong = rm;
+            break;
+          }
+        }
+
+        const winGroup = new THREE.Group();
+        winGroup.name = 'Ventana_' + (index + 1);
+        const borderThick = 0.04;
+        const frameDepth = Math.max(0.08, wallThick * 0.5);
+
+        function createBar(w, h, d, px, py, pz) {
+          const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMaterial);
+          bar.position.set(px, py, pz);
+          bar.castShadow = true;
+          bar.receiveShadow = true;
+          winGroup.add(bar);
+        }
+        if (axis === 'X') {
+          createBar(width, borderThick, frameDepth, centerX, cl.y + borderThick / 2, centerZ);
+          createBar(width, borderThick, frameDepth, centerX, headerY - borderThick / 2, centerZ);
+          createBar(borderThick, height - borderThick * 2, frameDepth, cl.minX + borderThick / 2, centerY, centerZ);
+          createBar(borderThick, height - borderThick * 2, frameDepth, cl.maxX - borderThick / 2, centerY, centerZ);
+        } else {
+          createBar(frameDepth, borderThick, width, centerX, cl.y + borderThick / 2, centerZ);
+          createBar(frameDepth, borderThick, width, centerX, headerY - borderThick / 2, centerZ);
+          createBar(frameDepth, height - borderThick * 2, borderThick, centerX, centerY, cl.minZ + borderThick / 2);
+          createBar(frameDepth, height - borderThick * 2, borderThick, centerX, centerY, cl.maxZ - borderThick / 2);
+        }
+
+        const glassGroup = new THREE.Group();
+        glassGroup.name = 'Vidrios_' + (index + 1);
+        const sashW = (width / 2) - borderThick * 0.3 + 0.015;
+        const sashH = height - borderThick * 2;
+        const sashFrameThick = 0.022;
+        const glassThick = 0.018;
+        const trackSep = 0.016;
+
+        function createSash(isSliding) {
+          const sGroup = new THREE.Group();
+          const gw = sashW - sashFrameThick * 2;
+          const gh = sashH - sashFrameThick * 2;
+          const gGeo = (axis === 'X') ?
+            new THREE.BoxGeometry(gw, gh, glassThick) :
+            new THREE.BoxGeometry(glassThick, gh, gw);
+          const gMesh = new THREE.Mesh(gGeo, glassMaterial.clone());
+          gMesh.castShadow = false;
+          gMesh.receiveShadow = true;
+          sGroup.add(gMesh);
+
+          function addSBar(w, h, d, px, py, pz) {
+            const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), sashFrameMaterial);
+            bar.position.set(px, py, pz);
+            bar.castShadow = true;
+            bar.receiveShadow = true;
+            sGroup.add(bar);
+          }
+          const fd = Math.max(0.035, wallThick * 0.3);
+          if (axis === 'X') {
+            addSBar(sashW, sashFrameThick, fd, 0, sashH / 2 - sashFrameThick / 2, 0);
+            addSBar(sashW, sashFrameThick, fd, 0, -sashH / 2 + sashFrameThick / 2, 0);
+            addSBar(sashFrameThick, sashH, fd, -sashW / 2 + sashFrameThick / 2, 0, 0);
+            addSBar(sashFrameThick, sashH, fd, sashW / 2 - sashFrameThick / 2, 0, 0);
+            if (isSliding) {
+              const handleMesh = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.12, fd + 0.01), frameMaterial);
+              handleMesh.position.set(-sashW / 2 + 0.04, 0, 0);
+              sGroup.add(handleMesh);
+            }
+          } else {
+            addSBar(fd, sashFrameThick, sashW, 0, sashH / 2 - sashFrameThick / 2, 0);
+            addSBar(fd, sashFrameThick, sashW, 0, -sashH / 2 + sashFrameThick / 2, 0);
+            addSBar(fd, sashH, sashFrameThick, 0, 0, -sashW / 2 + sashFrameThick / 2);
+            addSBar(fd, sashH, sashFrameThick, 0, 0, sashW / 2 - sashFrameThick / 2);
+            if (isSliding) {
+              const handleMesh = new THREE.Mesh(new THREE.BoxGeometry(fd + 0.01, 0.12, 0.018), frameMaterial);
+              handleMesh.position.set(0, 0, -sashW / 2 + 0.04);
+              sGroup.add(handleMesh);
+            }
+          }
+          return sGroup;
+        }
+
+        const fixedPaneGroup = createSash(false);
+        if (axis === 'X') {
+          fixedPaneGroup.position.set(centerX - width / 4, centerY, centerZ - trackSep);
+        } else {
+          fixedPaneGroup.position.set(centerX - trackSep, centerY, centerZ - width / 4);
+        }
+        glassGroup.add(fixedPaneGroup);
+
+        const slidingPaneGroup = createSash(true);
+        let baseSlidingPos = 0;
+        if (axis === 'X') {
+          baseSlidingPos = centerX + width / 4;
+          slidingPaneGroup.position.set(baseSlidingPos, centerY, centerZ + trackSep);
+        } else {
+          baseSlidingPos = centerZ + width / 4;
+          slidingPaneGroup.position.set(centerX + trackSep, centerY, baseSlidingPos);
+        }
+        glassGroup.add(slidingPaneGroup);
+        winGroup.add(glassGroup);
+
+        const jaggedGroup = new THREE.Group();
+        const glassW = width - borderThick * 1.5;
+        const shardBorderGeo = (axis === 'X') ?
+          new THREE.BoxGeometry(glassW, 0.08, glassThick * 1.2) :
+          new THREE.BoxGeometry(glassThick * 1.2, 0.08, glassW);
+        const shardBottom = new THREE.Mesh(shardBorderGeo, crackedMaterial);
+        shardBottom.position.set(centerX, cl.y + borderThick + 0.04, centerZ);
+        jaggedGroup.add(shardBottom);
+        jaggedGroup.visible = false;
+        winGroup.add(jaggedGroup);
+
+        scene.add(winGroup);
+
+        const windowData = {
+          id: index + 1,
+          axis: axis,
+          group: winGroup,
+          glassGroup: glassGroup,
+          fixedPaneGroup: fixedPaneGroup,
+          slidingPaneGroup: slidingPaneGroup,
+          jaggedGroup: jaggedGroup,
+          room: roomBelong,
+          centerX: centerX, centerY: centerY, centerZ: centerZ,
+          width: width, height: height,
+          sillY: cl.y, headerY: headerY,
+          minX: cl.minX, maxX: cl.maxX, minZ: cl.minZ, maxZ: cl.maxZ,
+          baseSlidingPos: baseSlidingPos,
+          targetOpenRatio: 0.0,
+          currentOpenRatio: 0.0,
+          isBroken: false
+        };
+
+        fixedPaneGroup.traverse(child => { if (child.isMesh) child.userData = { windowData: windowData }; });
+        slidingPaneGroup.traverse(child => { if (child.isMesh) child.userData = { windowData: windowData }; });
+
+        windowsList.push(windowData);
+      });
+    }
+
+    function shatterWindow(win, cause = 'mortal') {
+      if (!win || win.isBroken) return;
+      win.isBroken = true;
+      win.glassGroup.visible = false;
+      win.jaggedGroup.visible = true;
+
+      playGlassShatterSound();
+
+      const shardCount = IS_MOBILE ? 24 : 45;
+      const shardMaterial = new THREE.MeshStandardMaterial({
+        color: 0x9be0ff, roughness: 0.1, metalness: 0.2,
+        transparent: true, opacity: 0.7, side: THREE.DoubleSide
+      });
+
+      let nx = 0, nz = 0;
+      if (win.axis === 'X') {
+        nz = (win.centerZ < -10) ? -1 : 1;
+      } else {
+        nx = (win.centerX > 12) ? 1 : -1;
+      }
+
+      for (let i = 0; i < shardCount; i++) {
+        const sz = 0.05 + Math.random() * 0.14;
+        const geom = new THREE.BufferGeometry();
+        const p1 = [0, 0, 0];
+        const p2 = [(Math.random() - 0.5) * sz, sz, (Math.random() - 0.5) * sz];
+        const p3 = [sz, (Math.random() - 0.5) * sz, (Math.random() - 0.5) * sz];
+        geom.setAttribute('position', new THREE.Float32BufferAttribute([...p1, ...p2, ...p3], 3));
+        geom.computeVertexNormals();
+
+        const shard = new THREE.Mesh(geom, shardMaterial);
+
+        let posX = win.centerX;
+        let posZ = win.centerZ;
+        if (win.axis === 'X') {
+          posX += (Math.random() - 0.5) * (win.width * 0.85);
+        } else {
+          posZ += (Math.random() - 0.5) * (win.width * 0.85);
+        }
+        const posY = win.sillY + 0.1 + Math.random() * (win.height - 0.2);
+        shard.position.set(posX, posY, posZ);
+
+        const burstSpeed = 1.2 + Math.random() * 2.8;
+        const vel = new THREE.Vector3(
+          nx * burstSpeed + (Math.random() - 0.5) * 1.5,
+          0.8 + Math.random() * 1.8,
+          nz * burstSpeed + (Math.random() - 0.5) * 1.5
+        );
+        const rot = new THREE.Vector3(
+          (Math.random() - 0.5) * 15,
+          (Math.random() - 0.5) * 15,
+          (Math.random() - 0.5) * 15
+        );
+
+        scene.add(shard);
+        glassShards.push({
+          mesh: shard, velocity: vel, rotSpeed: rot,
+          life: 4.5 + Math.random() * 2.0, maxLife: 6.0
+        });
+      }
+    }
+
+    function repairAllWindows() {
+      windowsList.forEach(w => {
+        w.isBroken = false;
+        w.targetOpenRatio = 0.0;
+        w.currentOpenRatio = 0.0;
+        w.glassGroup.visible = true;
+        w.jaggedGroup.visible = false;
+        if (w.slidingPaneGroup) {
+          if (w.axis === 'X') {
+            w.slidingPaneGroup.position.x = w.baseSlidingPos;
+          } else {
+            w.slidingPaneGroup.position.z = w.baseSlidingPos;
+          }
+        }
+      });
+      glassShards.forEach(s => scene.remove(s.mesh));
+      glassShards.length = 0;
+    }
+
+    function updateWindows(delta) {
+      for (let i = 0; i < windowsList.length; i++) {
+        const w = windowsList[i];
+        if (w.isBroken) continue;
+        if (Math.abs(w.currentOpenRatio - w.targetOpenRatio) > 0.002) {
+          w.currentOpenRatio = THREE.MathUtils.lerp(w.currentOpenRatio, w.targetOpenRatio, 0.14);
+        } else {
+          w.currentOpenRatio = w.targetOpenRatio;
+        }
+        const slideOffset = w.currentOpenRatio * w.width;
+        if (w.axis === 'X') {
+          w.slidingPaneGroup.position.x = w.baseSlidingPos - slideOffset;
+        } else {
+          w.slidingPaneGroup.position.z = w.baseSlidingPos - slideOffset;
+        }
+      }
+    }
+
+    function updateGlassShards(delta) {
+      if (glassShards.length === 0) return;
+      const step = Math.min(delta, 0.05);
+
+      for (let i = glassShards.length - 1; i >= 0; i--) {
+        const s = glassShards[i];
+        s.life -= step;
+        if (s.life <= 0) {
+          scene.remove(s.mesh);
+          s.mesh.geometry.dispose();
+          glassShards.splice(i, 1);
+          continue;
+        }
+        s.velocity.y -= 9.8 * step;
+        s.mesh.position.addScaledVector(s.velocity, step);
+        s.mesh.rotation.x += s.rotSpeed.x * step;
+        s.mesh.rotation.y += s.rotSpeed.y * step;
+        s.mesh.rotation.z += s.rotSpeed.z * step;
+
+        if (s.mesh.position.y <= 0.015) {
+          s.mesh.position.y = 0.015;
+          if (s.velocity.y < -0.3) {
+            s.velocity.y = -s.velocity.y * 0.25;
+          } else {
+            s.velocity.y = 0;
+          }
+          s.velocity.x *= 0.65;
+          s.velocity.z *= 0.65;
+          s.rotSpeed.multiplyScalar(0.7);
+        }
+        if (s.life < 1.5) {
+          s.mesh.material.opacity = (s.life / 1.5) * 0.7;
+        }
+      }
+    }
+
+    detectAndBuildWindows();
+
+    /* PUERTAS */
+    const EXCLUDED_DOOR_POINTS = [
+      { x: 4.62, z: -0.7, radius: 0.8 },
+      { x: 5.75, z: -7.3, radius: 0.8 }
+    ];
+
+    function isPointExcludedFromDoors(x, z) {
+      for (let i = 0; i < EXCLUDED_DOOR_POINTS.length; i++) {
+        const p = EXCLUDED_DOOR_POINTS[i];
+        if (Math.hypot(x - p.x, z - p.z) <= p.radius) return true;
+      }
+      return false;
+    }
+
+    const DOORS_CONFIG = [
+      { id: 'door-verde', name: 'Puerta Laboratorio Verde', room: 'Laboratorio Verde',
+        axis: 'Z', centerX: 3.834, centerZ: -6.088, minX: 3.702, maxX: 3.966,
+        minZ: -6.589, maxZ: -5.586, width: 1.003, height: 2.100,
+        hingeX: 3.834, hingeZ: -6.589, openAngle: -Math.PI * 0.48, wallThick: 0.264 },
+      { id: 'door-rojo', name: 'Puerta Laboratorio Rojo', room: 'Laboratorio Rojo',
+        axis: 'Z', centerX: 12.015, centerZ: -7.449, minX: 11.879, maxX: 12.151,
+        minZ: -7.862, maxZ: -7.035, width: 0.827, height: 2.150,
+        hingeX: 12.015, hingeZ: -7.862, openAngle: Math.PI * 0.48, wallThick: 0.272 },
+      { id: 'door-azul', name: 'Puerta Laboratorio Azul', room: 'Laboratorio Azul',
+        axis: 'X', centerX: 8.847, centerZ: -8.608, minX: 8.427, maxX: 9.267,
+        minZ: -8.739, maxZ: -8.477, width: 0.840, height: 2.150,
+        hingeX: 8.427, hingeZ: -8.608, openAngle: Math.PI * 0.48, wallThick: 0.262 },
+      { id: 'door-naranja', name: 'Puerta Lab Naranja', room: 'Laboratorio Naranja',
+        axis: 'Z', centerX: 3.773, centerZ: -9.406, minX: 3.634, maxX: 3.913,
+        minZ: -9.881, maxZ: -8.931, width: 0.950, height: 2.150,
+        hingeX: 3.773, hingeZ: -9.881, openAngle: -Math.PI * 0.48, wallThick: 0.279 },
+      { id: 'door-interior-azul', name: 'Puerta Interior Lab Azul', room: 'Laboratorio Azul',
+        isDiagonal: true, centerX: 10.250, centerZ: -9.368,
+        hingeX: 10.443, hingeZ: -9.691, jamb1X: 10.056, jamb1Z: -9.045,
+        jamb2X: 10.443, jamb2Z: -9.691, width: 0.753, height: 2.150,
+        baseAngle: -2.11053, openAngle: Math.PI * 0.48, wallThick: 0.20 },
+      { id: 'door-salida-este', name: 'Puerta Salida Pasillo Este', room: 'Pasillo',
+        axis: 'X', centerX: 12.659, centerZ: -6.577, minX: 12.239, maxX: 13.079,
+        minZ: -6.702, maxZ: -6.452, width: 0.840, height: 2.150,
+        hingeX: 12.239, hingeZ: -6.577, openAngle: -Math.PI * 0.48, wallThick: 0.250 }
+    ];
+
+    function createDoor(cfg) {
+      const doorThick = 0.045;
+      const doorWidth = cfg.width - 0.02;
+      const doorHeight = cfg.height - 0.02;
+
+      const doorMat = new THREE.MeshStandardMaterial({
+        color: 0x7c4f2e, roughness: 0.55, metalness: 0.12, side: THREE.DoubleSide
+      });
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x24282c, roughness: 0.5, metalness: 0.7 });
+      const handleMat = new THREE.MeshStandardMaterial({ color: 0xd6dadf, roughness: 0.25, metalness: 0.9 });
+
+      const frameGroup = new THREE.Group();
+      const frameTrim = 0.04;
+      const frameDepth = Math.max(0.10, cfg.wallThick * 0.6);
+
+      function addFrameBar(w, h, d, px, py, pz) {
+        const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat);
+        bar.position.set(px, py, pz);
+        bar.castShadow = true;
+        bar.receiveShadow = true;
+        frameGroup.add(bar);
+      }
+
+      if (cfg.isDiagonal) {
+        const dFrame = new THREE.Group();
+        const dBarTop = new THREE.Mesh(new THREE.BoxGeometry(cfg.width, frameTrim, frameDepth), frameMat);
+        dBarTop.position.set(0, cfg.height - frameTrim / 2, 0);
+        dFrame.add(dBarTop);
+        const dPostL = new THREE.Mesh(new THREE.BoxGeometry(frameTrim, cfg.height, frameDepth), frameMat);
+        dPostL.position.set(-cfg.width / 2 + frameTrim / 2, cfg.height / 2, 0);
+        dFrame.add(dPostL);
+        const dPostR = new THREE.Mesh(new THREE.BoxGeometry(frameTrim, cfg.height, frameDepth), frameMat);
+        dPostR.position.set(cfg.width / 2 - frameTrim / 2, cfg.height / 2, 0);
+        dFrame.add(dPostR);
+        dFrame.position.set(cfg.centerX, 0, cfg.centerZ);
+        dFrame.rotation.y = cfg.baseAngle;
+        frameGroup.add(dFrame);
+      } else if (cfg.axis === 'Z') {
+        addFrameBar(frameDepth, frameTrim, cfg.width, cfg.centerX, cfg.height - frameTrim / 2, cfg.centerZ);
+        addFrameBar(frameDepth, cfg.height, frameTrim, cfg.centerX, cfg.height / 2, cfg.minZ + frameTrim / 2);
+        addFrameBar(frameDepth, cfg.height, frameTrim, cfg.centerX, cfg.height / 2, cfg.maxZ - frameTrim / 2);
+      } else {
+        addFrameBar(cfg.width, frameTrim, frameDepth, cfg.centerX, cfg.height - frameTrim / 2, cfg.centerZ);
+        addFrameBar(frameTrim, cfg.height, frameDepth, cfg.minX + frameTrim / 2, cfg.height / 2, cfg.centerZ);
+        addFrameBar(frameTrim, cfg.height, frameDepth, cfg.maxX - frameTrim / 2, cfg.height / 2, cfg.centerZ);
+      }
+      scene.add(frameGroup);
+
+      const pivotGroup = new THREE.Group();
+      pivotGroup.position.set(cfg.hingeX, 0, cfg.hingeZ);
+      const initialAngle = cfg.isDiagonal ? cfg.baseAngle : 0;
+      pivotGroup.rotation.y = initialAngle;
+
+      let doorGeo;
+      if (cfg.axis === 'Z' && !cfg.isDiagonal) {
+        doorGeo = new THREE.BoxGeometry(doorThick, doorHeight, doorWidth);
+      } else {
+        doorGeo = new THREE.BoxGeometry(doorWidth, doorHeight, doorThick);
+      }
+
+      const doorMesh = new THREE.Mesh(doorGeo, doorMat);
+      doorMesh.castShadow = true;
+      doorMesh.receiveShadow = true;
+      if (cfg.axis === 'Z' && !cfg.isDiagonal) {
+        doorMesh.position.set(0, doorHeight / 2, doorWidth / 2);
+      } else {
+        doorMesh.position.set(doorWidth / 2, doorHeight / 2, 0);
+      }
+      pivotGroup.add(doorMesh);
+
+      const trimGeo = (cfg.axis === 'Z' && !cfg.isDiagonal) ?
+        new THREE.BoxGeometry(doorThick + 0.006, doorHeight * 0.85, doorWidth * 0.75) :
+        new THREE.BoxGeometry(doorWidth * 0.75, doorHeight * 0.85, doorThick + 0.006);
+      const trimMesh = new THREE.Mesh(trimGeo, new THREE.MeshStandardMaterial({
+        color: 0x683f21, roughness: 0.6, metalness: 0.1
+      }));
+      trimMesh.position.copy(doorMesh.position);
+      pivotGroup.add(trimMesh);
+
+      const handleY = 1.0;
+      const handleLen = 0.11;
+      const isZOnly = (cfg.axis === 'Z' && !cfg.isDiagonal);
+      const hLocalPos = isZOnly ?
+        new THREE.Vector3(0, handleY, doorWidth - 0.08) :
+        new THREE.Vector3(doorWidth - 0.08, handleY, 0);
+
+      function createHandle(side) {
+        const hGroup = new THREE.Group();
+        const roseGeo = isZOnly ?
+          new THREE.BoxGeometry(0.01, 0.14, 0.04) :
+          new THREE.BoxGeometry(0.04, 0.14, 0.01);
+        const rose = new THREE.Mesh(roseGeo, handleMat);
+        hGroup.add(rose);
+        const pinGeo = new THREE.CylinderGeometry(0.008, 0.008, 0.04, 8);
+        const pin = new THREE.Mesh(pinGeo, handleMat);
+        pin.rotation.z = isZOnly ? Math.PI / 2 : 0;
+        pin.rotation.x = isZOnly ? 0 : Math.PI / 2;
+        pin.position.set((isZOnly ? side * 0.02 : 0), 0, (isZOnly ? 0 : side * 0.02));
+        hGroup.add(pin);
+        const leverGeo = isZOnly ?
+          new THREE.BoxGeometry(0.014, 0.014, handleLen) :
+          new THREE.BoxGeometry(handleLen, 0.014, 0.014);
+        const lever = new THREE.Mesh(leverGeo, handleMat);
+        lever.position.set(
+          (isZOnly ? side * (doorThick / 2 + 0.025) : -handleLen / 3),
+          0,
+          (isZOnly ? -handleLen / 3 : side * (doorThick / 2 + 0.025))
+        );
+        hGroup.add(lever);
+        hGroup.position.set(
+          hLocalPos.x + (isZOnly ? side * (doorThick / 2 + 0.005) : 0),
+          hLocalPos.y,
+          hLocalPos.z + (isZOnly ? 0 : side * (doorThick / 2 + 0.005))
+        );
+        return hGroup;
+      }
+      pivotGroup.add(createHandle(1));
+      pivotGroup.add(createHandle(-1));
+      scene.add(pivotGroup);
+
+      const doorObj = {
+        id: cfg.id, name: cfg.name, room: cfg.room,
+        axis: cfg.axis, isDiagonal: !!cfg.isDiagonal, baseAngle: initialAngle,
+        pivotGroup: pivotGroup, doorMesh: doorMesh,
+        width: cfg.width, height: cfg.height,
+        centerX: cfg.centerX, centerZ: cfg.centerZ,
+        minX: cfg.minX, maxX: cfg.maxX, minZ: cfg.minZ, maxZ: cfg.maxZ,
+        jamb1X: cfg.jamb1X, jamb1Z: cfg.jamb1Z,
+        jamb2X: cfg.jamb2X, jamb2Z: cfg.jamb2Z,
+        hingeX: cfg.hingeX, hingeZ: cfg.hingeZ,
+        openAngle: cfg.openAngle,
+        currentAngle: initialAngle,
+        targetAngle: initialAngle,
+        isOpen: false,
+        toggle: function() {
+          this.isOpen = !this.isOpen;
+          this.targetAngle = this.isOpen ? (this.baseAngle + this.openAngle) : this.baseAngle;
+          playDoorSound(this.isOpen);
+        },
+        open: function() {
+          if (!this.isOpen) {
+            this.isOpen = true;
+            this.targetAngle = this.baseAngle + this.openAngle;
+            playDoorSound(true);
+          }
+        },
+        close: function() {
+          if (this.isOpen) {
+            this.isOpen = false;
+            this.targetAngle = this.baseAngle;
+            playDoorSound(false);
+          }
+        }
+      };
+      doorMesh.userData = { doorData: doorObj };
+      doorsList.push(doorObj);
+      return doorObj;
+    }
+
+    function detectAndBuildDoors() {
+      for (const cfg of DOORS_CONFIG) {
+        if (!isPointExcludedFromDoors(cfg.centerX, cfg.centerZ)) {
+          createDoor(cfg);
+        }
+      }
+    }
+
+    function updateDoors(delta) {
+      if (doorsList.length === 0) return;
+      for (let i = 0; i < doorsList.length; i++) {
+        const d = doorsList[i];
+        if (Math.abs(d.pivotGroup.rotation.y - d.targetAngle) > 0.001) {
+          d.pivotGroup.rotation.y = THREE.MathUtils.lerp(d.pivotGroup.rotation.y, d.targetAngle, 0.14);
+        } else {
+          d.pivotGroup.rotation.y = d.targetAngle;
+        }
+      }
+    }
+
+    detectAndBuildDoors();
+
+    /* INTERACCIÓN CLIC */
+    const clickRaycaster = new THREE.Raycaster();
+    const clickPointer = new THREE.Vector2();
+    let ptrDown = { x: 0, y: 0, time: 0 };
+
+    window.addEventListener('pointerdown', (e) => {
+      ptrDown = { x: e.clientX, y: e.clientY, time: Date.now() };
+    });
+
+    window.addEventListener('pointerup', (e) => {
+      if (e.target.closest('#ui') || e.target.closest('#btn-menu') || e.target.closest('#tabla-seguridad')) return;
+      const dist = Math.hypot(e.clientX - ptrDown.x, e.clientY - ptrDown.y);
+      if (dist > 8 || (Date.now() - ptrDown.time) > 400) return;
+
+      clickPointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+      clickPointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      clickRaycaster.setFromCamera(clickPointer, camera);
+
+      const doorClickMeshes = [];
+      doorsList.forEach(d => {
+        d.pivotGroup.traverse(child => {
+          if (child.isMesh) doorClickMeshes.push(child);
+        });
+      });
+      const doorHits = clickRaycaster.intersectObjects(doorClickMeshes);
+      if (doorHits.length > 0) {
+        let hitObj = doorHits[0].object;
+        let dData = null;
+        while (hitObj && !dData) {
+          if (hitObj.userData && hitObj.userData.doorData) dData = hitObj.userData.doorData;
+          hitObj = hitObj.parent;
+        }
+        if (!dData) {
+          const hitPt = doorHits[0].point;
+          for (let d of doorsList) {
+            if (Math.hypot(hitPt.x - d.centerX, hitPt.z - d.centerZ) < 1.2) { dData = d; break; }
+          }
+        }
+        if (dData) { dData.toggle(); return; }
+      }
+
+      const windowMeshes = [];
+      windowsList.filter(w => !w.isBroken).forEach(w => {
+        w.glassGroup.traverse(child => {
+          if (child.isMesh) windowMeshes.push(child);
+        });
+      });
+      const windowHits = clickRaycaster.intersectObjects(windowMeshes);
+      if (windowHits.length > 0) {
+        let hitObj = windowHits[0].object;
+        let wData = null;
+        while (hitObj && !wData) {
+          if (hitObj.userData && hitObj.userData.windowData) wData = hitObj.userData.windowData;
+          hitObj = hitObj.parent;
+        }
+        if (wData && !wData.isBroken) {
+          const opening = (wData.targetOpenRatio <= 0.05);
+          wData.targetOpenRatio = opening ? 0.5 : 0.0;
+          playWindowSlideSound(opening);
+          return;
+        }
+      }
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (IS_MOBILE) return;
+      clickPointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+      clickPointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      clickRaycaster.setFromCamera(clickPointer, camera);
+
+      const doorClickMeshes = [];
+      doorsList.forEach(d => {
+        d.pivotGroup.traverse(child => {
+          if (child.isMesh) doorClickMeshes.push(child);
+        });
+      });
+      if (clickRaycaster.intersectObjects(doorClickMeshes).length > 0) {
+        renderer.domElement.style.cursor = 'pointer';
+        return;
+      }
+      const windowMeshes = [];
+      windowsList.filter(w => !w.isBroken).forEach(w => {
+        w.glassGroup.traverse(child => {
+          if (child.isMesh) windowMeshes.push(child);
+        });
+      });
+      if (clickRaycaster.intersectObjects(windowMeshes).length > 0) {
+        renderer.domElement.style.cursor = 'pointer';
+        return;
+      }
+      renderer.domElement.style.cursor = 'default';
+    });
+
+    /* WORKSTATIONS */
     const workstations = [];
 
     function createWorkstation(x, z, rotationY = 0, roomId = 'rojo') {
       const group = new THREE.Group();
 
-      // Mesa
       const deskMat = new THREE.MeshStandardMaterial({ color: 0x2b303a, roughness: 0.5, metalness: 0.2 });
       const deskGeo = new THREE.BoxGeometry(0.70, 0.05, 0.48);
       const desk = new THREE.Mesh(deskGeo, deskMat);
@@ -972,7 +1741,6 @@
       desk.receiveShadow = true;
       group.add(desk);
 
-      // Patas
       const legMat = new THREE.MeshStandardMaterial({ color: 0x111115, metalness: 0.8, roughness: 0.3 });
       const legGeo = new THREE.BoxGeometry(0.05, 0.7, 0.05);
       [[-0.30, -0.20], [0.30, -0.20], [-0.30, 0.20], [0.30, 0.20]].forEach(([lx, lz]) => {
@@ -982,7 +1750,6 @@
         group.add(leg);
       });
 
-      // Silla de Oficina
       const chairMat = new THREE.MeshStandardMaterial({ color: 0x1e2229, roughness: 0.8 });
       const seatGeo = new THREE.BoxGeometry(0.36, 0.05, 0.36);
       const seat = new THREE.Mesh(seatGeo, chairMat);
@@ -1000,7 +1767,6 @@
       baseLeg.position.set(0, 0.21, 0.35);
       group.add(baseLeg);
 
-      // Monitor
       const monMat = new THREE.MeshStandardMaterial({ color: 0x0f1115, roughness: 0.4 });
       const monBase = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.02, 0.15), monMat);
       monBase.position.set(0, 0.74, -0.10);
@@ -1010,20 +1776,15 @@
       monStand.position.set(0, 0.83, -0.12);
       group.add(monStand);
 
-      // Pantalla de computadora (encendida cyan/blue)
       const screenGeo = new THREE.BoxGeometry(0.42, 0.28, 0.025);
       const screenMat = new THREE.MeshStandardMaterial({
-        color: 0x00d2ff,
-        emissive: 0x0055aa,
-        emissiveIntensity: 0.7,
-        roughness: 0.2
+        color: 0x00d2ff, emissive: 0x0055aa, emissiveIntensity: 0.7, roughness: 0.2
       });
       const screen = new THREE.Mesh(screenGeo, screenMat);
       screen.position.set(0, 0.94, -0.11);
       screen.castShadow = true;
       group.add(screen);
 
-      // Teclado
       const kbMat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.6 });
       const kb = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.015, 0.12), kbMat);
       kb.position.set(0, 0.73, 0.08);
@@ -1042,7 +1803,6 @@
       return ws;
     }
 
-    // 38 Puestos en Laboratorio Rojo (Room 0)
     const colsRojo = [13.35, 14.20, 15.05, 15.90, 16.75, 17.60, 18.45, 19.30];
     const colsRojo2 = [15.5, 16.35, 17.2, 18.05, 18.9, 19.75];
     colsRojo.forEach(x => createWorkstation(x, -7.4, 0, 'rojo'));
@@ -1051,35 +1811,28 @@
     colsRojo.forEach(x => createWorkstation(x, -11.4, Math.PI, 'rojo'));
     colsRojo2.forEach(x => createWorkstation(x, -12.8, 0, 'rojo'));
 
-    // 16 Puestos en Laboratorio Verde (Room 2)
-    // Pared Norte
     createWorkstation(1.10, -0.84, Math.PI, 'verde');
     createWorkstation(2.20, -0.84, Math.PI, 'verde');
     createWorkstation(3.30, -0.84, Math.PI, 'verde');
-    // Pared Sur
     createWorkstation(0.80, -8.06, 0, 'verde');
     createWorkstation(1.80, -8.06, 0, 'verde');
     createWorkstation(2.80, -8.06, 0, 'verde');
-    // Pared Este
     createWorkstation(3.30, -5.22, -Math.PI / 2, 'verde');
     createWorkstation(3.30, -4.45, -Math.PI / 2, 'verde');
     createWorkstation(3.30, -3.68, -Math.PI / 2, 'verde');
     createWorkstation(3.30, -2.91, -Math.PI / 2, 'verde');
     createWorkstation(3.30, -2.14, -Math.PI / 2, 'verde');
-    // Pared Oeste
     createWorkstation(0.70, -6.72, Math.PI / 2, 'verde');
     createWorkstation(0.70, -5.72, Math.PI / 2, 'verde');
     createWorkstation(0.70, -4.45, Math.PI / 2, 'verde');
     createWorkstation(0.70, -3.40, Math.PI / 2, 'verde');
     createWorkstation(0.70, -2.28, Math.PI / 2, 'verde');
 
-    // 12 Puestos en Laboratorio Naranja
     const rowsNaranja = [-9.60, -10.60, -11.60, -12.60, -13.60, -14.60];
     const rowsNaranja2 = [-10.60, -11.60, -12.60, -13.60, -14.60];
     rowsNaranja.forEach(z => createWorkstation(0.80, z,  Math.PI / 2, 'naranja'));
     rowsNaranja2.forEach(z => createWorkstation(3.20, z, -Math.PI / 2, 'naranja'));
 
-    // Puestos en Laboratorio Azul
     const ROT_AZUL = -Math.PI / 2;
     const filasAzul = {
       '4.45':  [-10.05, -11.05, -12.05, -13.05, -14.05, -15.05],
@@ -1097,22 +1850,13 @@
       filasAzul[xStr].forEach(z => createWorkstation(x, z, ROT_AZUL, 'azul'));
     });
 
-    /* ============================================================
-       SISTEMA DE PERSONAS
-       ============================================================ */
+    /* SISTEMA DE PERSONAS */
     const people = [];
     const PERSON_COLORS = [
       0x2266ff, 0xff8800, 0x22cc55, 0xee3333, 0x9933ff,
       0x00cccc, 0xee0088, 0xffbb00, 0x3388ff, 0x00aa77
     ];
-
-    /* Color de la remera = color del laboratorio de origen */
-    const ROOM_COLORS = {
-      rojo:    0xee3333,
-      verde:   0x22cc55,
-      naranja: 0xff8800,
-      azul:    0x2266ff
-    };
+    const ROOM_COLORS = { rojo: 0xee3333, verde: 0x22cc55, naranja: 0xff8800, azul: 0x2266ff };
 
     let isPeopleVisible = true;
     let isPeopleMoving  = true;
@@ -1146,17 +1890,6 @@
       return false;
     }
 
-    function getRandomWalkablePoint() {
-      if (walkableList.length > 0) {
-        for (let intento = 0; intento < 20; intento++) {
-          const pt = walkableList[Math.floor(Math.random() * walkableList.length)];
-          if (!isNearExit(pt.x, pt.z)) return pt;
-        }
-        return walkableList[Math.floor(Math.random() * walkableList.length)];
-      }
-      return { x: 7, z: -8 };
-    }
-
     function getHeatAt(x, z) {
       const cx = Math.floor((x - heatMinX) / heatCellW);
       const cz = Math.floor((z - heatMinZ) / heatCellD);
@@ -1173,7 +1906,6 @@
       return VIS_FACTORS[VIS_FACTORS.length - 1];
     }
 
-    // Tasa de dosis de humo (FED simplificado): FED = 1 → incapacidad
     function getFedRate(x, z) {
       const density = getHeatAt(x, z);
       if (density <= SMOKE_SAFE_DENSITY) return 0;
@@ -1195,88 +1927,53 @@
       return null;
     }
 
-    /* ---------- MARCADOR DE MUERTE "X" ---------- */
     let _deathMarkerTexture = null;
     function getDeathMarkerTexture() {
       if (_deathMarkerTexture) return _deathMarkerTexture;
-
       const canvas = document.createElement('canvas');
-      canvas.width  = 128;
-      canvas.height = 128;
+      canvas.width = 128; canvas.height = 128;
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, 128, 128);
-
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 28;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(30, 30); ctx.lineTo(98, 98);
-      ctx.moveTo(98, 30); ctx.lineTo(30, 98);
-      ctx.stroke();
-
-      ctx.strokeStyle = '#ff0000';
-      ctx.lineWidth = 18;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(30, 30); ctx.lineTo(98, 98);
-      ctx.moveTo(98, 30); ctx.lineTo(30, 98);
-      ctx.stroke();
-
+      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 28; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(30, 30); ctx.lineTo(98, 98); ctx.moveTo(98, 30); ctx.lineTo(30, 98); ctx.stroke();
+      ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 18; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(30, 30); ctx.lineTo(98, 98); ctx.moveTo(98, 30); ctx.lineTo(30, 98); ctx.stroke();
       const tex = new THREE.CanvasTexture(canvas);
-      tex.anisotropy = 8;
-      tex.needsUpdate = true;
+      tex.anisotropy = 8; tex.needsUpdate = true;
       _deathMarkerTexture = tex;
       return tex;
     }
 
     function createDeathMarker() {
-      const mat = new THREE.SpriteMaterial({
-        map: getDeathMarkerTexture(),
-        transparent: true,
-        depthTest: true,
-        depthWrite: false
-      });
+      const mat = new THREE.SpriteMaterial({ map: getDeathMarkerTexture(), transparent: true, depthTest: true, depthWrite: false });
       const sprite = new THREE.Sprite(mat);
       sprite.scale.set(0.55, 0.55, 1);
       sprite.position.set(0, 1.75, 0);
       return sprite;
     }
 
-    /* ---------- MARCADOR DE ALERTA "!" ---------- */
     let _alertMarkerTexture = null;
     function getAlertMarkerTexture() {
       if (_alertMarkerTexture) return _alertMarkerTexture;
       const canvas = document.createElement('canvas');
-      canvas.width = 128;
-      canvas.height = 128;
+      canvas.width = 128; canvas.height = 128;
       const ctx = canvas.getContext('2d');
-
       ctx.fillStyle = '#ffaa00';
       ctx.beginPath(); ctx.arc(64, 64, 52, 0, Math.PI * 2); ctx.fill();
-
       ctx.fillStyle = '#ff2200';
       ctx.beginPath(); ctx.arc(64, 64, 44, 0, Math.PI * 2); ctx.fill();
-
       ctx.fillStyle = '#ffffff';
       ctx.font = '900 68px Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText('!', 64, 62);
-
       const tex = new THREE.CanvasTexture(canvas);
-      tex.anisotropy = 8;
-      tex.needsUpdate = true;
+      tex.anisotropy = 8; tex.needsUpdate = true;
       _alertMarkerTexture = tex;
       return tex;
     }
 
     function createAlertMarker() {
-      const mat = new THREE.SpriteMaterial({
-        map: getAlertMarkerTexture(),
-        transparent: true,
-        depthTest: true,
-        depthWrite: false
-      });
+      const mat = new THREE.SpriteMaterial({ map: getAlertMarkerTexture(), transparent: true, depthTest: true, depthWrite: false });
       const sprite = new THREE.Sprite(mat);
       sprite.scale.set(0.65, 0.65, 1);
       sprite.position.set(0, 1.7, 0);
@@ -1284,18 +1981,8 @@
       return sprite;
     }
 
-    function triggerAlertPerson(p) {
-      if (p.isDead || p.state === 'evacuating') return;
-      if (p.reactionDelay <= 0) {
-        p.reactionDelay = samplePremovementTime(alarmActive || true);
-      }
-      p.idleTime = 0;
-      if (p.alertMarker) p.alertMarker.visible = false;
-    }
-
     function createPerson(x, z, color = 0x2266ff, workstation = null) {
       const group = new THREE.Group();
-
       const bodyGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.9, 12);
       const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
       const body = new THREE.Mesh(bodyGeo, bodyMat);
@@ -1307,7 +1994,6 @@
       const head = new THREE.Mesh(headGeo, headMat);
       head.position.y = 0.9 + 0.14;
       head.castShadow = true;
-
       group.add(body, head);
 
       const alertMarker = createAlertMarker();
@@ -1316,7 +2002,6 @@
       let px = x, pz = z;
       let rotY = Math.random() * Math.PI * 2;
       let isSitting = false;
-
       if (workstation) {
         px = workstation.seatPos.x;
         pz = workstation.seatPos.z;
@@ -1330,19 +2015,14 @@
       scene.add(group);
 
       const personObj = {
-        mesh: group,
-        body: body,
-        head: head,
-        x: px,
-        z: pz,
+        mesh: group, body: body, head: head,
+        x: px, z: pz,
         workstation: workstation,
         speed: sampleWalkSpeed(),
         animOffset: Math.random() * Math.PI * 2,
-        idleTime: 0,
-        stuckFrames: 0,
+        idleTime: 0, stuckFrames: 0,
         state: isSitting ? 'sitting' : 'wandering',
-        alerted: false,
-        reactionDelay: 0,
+        alerted: false, reactionDelay: 0,
         contagionCue: false,
         wanderAngle: rotY,
         wanderTimer: 1.0 + Math.random() * 2.0,
@@ -1357,7 +2037,6 @@
         confusionCooldown: 0,
         bumpTimer: 0
       };
-
       people.push(personObj);
       return personObj;
     }
@@ -1369,9 +2048,7 @@
         pt.z >= roomObj.minZ && pt.z <= roomObj.maxZ &&
         !isNearExit(pt.x, pt.z)
       );
-      if (candidates.length > 0) {
-        return candidates[Math.floor(Math.random() * candidates.length)];
-      }
+      if (candidates.length > 0) return candidates[Math.floor(Math.random() * candidates.length)];
       return { x: (roomObj.minX + roomObj.maxX) / 2, z: (roomObj.minZ + roomObj.maxZ) / 2 };
     }
 
@@ -1394,7 +2071,6 @@
 
     function populateRoom(def, targetCount, colorOffset) {
       const current = people.filter(p => p.roomKey === def.key);
-
       if (current.length === targetCount) return;
 
       if (current.length > targetCount) {
@@ -1448,12 +2124,7 @@
     }
 
     function spawnPeople(countRojo = null, countVerde = null, countNaranja = null, countAzul = null) {
-      const counts = {
-        'rojo': countRojo,
-        'verde': countVerde,
-        'naranja': countNaranja,
-        'azul': countAzul
-      };
+      const counts = { 'rojo': countRojo, 'verde': countVerde, 'naranja': countNaranja, 'azul': countAzul };
       clearPeople();
       workstations.forEach(ws => ws.occupied = false);
       let offset = 0;
@@ -1485,7 +2156,6 @@
       p.head.material.color.setHex(0x000000);
       p.body.material.roughness = 1.0;
       p.head.material.roughness = 1.0;
-
       p.body.position.y = 0.45;
       p.head.position.y = 1.04;
 
@@ -1499,13 +2169,12 @@
       updateDeathCounter();
     }
 
-    /* ---------- Choques entre personas ---------- */
     function collidesWithOthers(self, x, z, radius) {
       const r2 = radius * radius;
       for (let k = 0; k < people.length; k++) {
         const o = people[k];
         if (o === self || o.isDead) continue;
-        if (o.state === 'sitting') continue; // los sentados no bloquean el paso
+        if (o.state === 'sitting') continue;
         const dx = o.x - x;
         const dz = o.z - z;
         if (dx * dx + dz * dz < r2) return true;
@@ -1513,7 +2182,6 @@
       return false;
     }
 
-    /* Busca un paso libre alrededor del ángulo deseado (esquiva paredes y gente) */
     const STEER_OFFSETS = [0, 0.35, -0.35, 0.70, -0.70, 1.05, -1.05, 1.40, -1.40, 1.75, -1.75];
     function findClearStep(p, baseAngle, step) {
       for (let s = 0; s < STEER_OFFSETS.length; s++) {
@@ -1527,7 +2195,6 @@
       return null;
     }
 
-    // Avanza en sub-pasos para no "atravesar" paredes a alta velocidad
     const MAX_SUBSTEP = PERSON_COLLISION_R * 0.75;
     function advancePerson(p, baseAngle, step) {
       let remaining = step;
@@ -1546,9 +2213,8 @@
       return moved ? angle : null;
     }
 
-    /* ---------- Desorientación: algunos se pierden y van a otro laboratorio ---------- */
     function startConfusion(p) {
-      const options = LAB_ROOM_IDXS.filter(idx => idx !== p.originRoomIdx);
+      const options = LAB_ROOM_IDX_S.filter(idx => idx !== p.originRoomIdx);
       if (options.length === 0) return;
       p.wrongRoomIdx = options[Math.floor(Math.random() * options.length)];
       p.confusionTarget = getRandomWalkablePointInRoom(ROOMS[p.wrongRoomIdx]);
@@ -1559,14 +2225,13 @@
 
     function maybeConfuse(p, delta) {
       if (p.lost) return;
-      // Cerca de la salida el camino es obvio: no se confunden
       if (isNearExit(p.x, p.z)) return;
-      let bestDx = 0, bestDz = 0, bestD2 = Infinity;
+      let bestD2 = Infinity;
       for (let k = 0; k < EXITS.length; k++) {
         const dx = p.x - EXITS[k].x;
         const dz = p.z - EXITS[k].z;
         const d2 = dx * dx + dz * dz;
-        if (d2 < bestD2) { bestD2 = d2; bestDx = dx; bestDz = dz; }
+        if (d2 < bestD2) bestD2 = d2;
       }
       if (bestD2 < CONFUSION_SAFE_R * CONFUSION_SAFE_R) return;
       if (Math.random() < CONFUSION_CHANCE * delta * simSpeed) startConfusion(p);
@@ -1575,7 +2240,6 @@
     function updatePeople(delta, time) {
       if (!isPeopleVisible) return;
 
-      /* ---------- CONTAGIO DE EVACUACIÓN ---------- */
       if (evacuationMode) {
         for (let i = 0; i < people.length; i++) {
           const a = people[i];
@@ -1589,8 +2253,7 @@
             if (dx * dx + dz * dz <= CONTAGION_RADIUS * CONTAGION_RADIUS) {
               if (!b.contagionCue) {
                 b.contagionCue = true;
-                const cue = CONTAGION_DELAY_MIN +
-                            Math.random() * (CONTAGION_DELAY_MAX - CONTAGION_DELAY_MIN);
+                const cue = CONTAGION_DELAY_MIN + Math.random() * (CONTAGION_DELAY_MAX - CONTAGION_DELAY_MIN);
                 if (b.reactionDelay <= 0) b.reactionDelay = cue;
                 else b.reactionDelay = Math.min(b.reactionDelay, cue);
               }
@@ -1609,20 +2272,14 @@
           }
           continue;
         }
-
         if (!isPeopleMoving) continue;
 
-        /* ---------- Dosis de humo (FED simplificado, acumulativa) ---------- */
         const estadoRecinto = getRoomStatusAt(p.x, p.z);
         p.fed += getFedRate(p.x, p.z) * delta * simSpeed;
-        if (p.fed >= 1) {
-          killPerson(p);
-          continue;
-        }
+        if (p.fed >= 1) { killPerson(p); continue; }
 
         const dangerFactor = getSpeedFactorByHeat(p.x, p.z);
 
-        /* ---------- Pre-movimiento y disparo de evacuación ---------- */
         if ((p.state === 'sitting' || p.state === 'wandering') && evacuationMode) {
           const heat = getHeatAt(p.x, p.z);
           const recintoPeligroso = (estadoRecinto === 'Peligroso' ||
@@ -1642,9 +2299,6 @@
           }
         }
 
-        // ============================================
-        // ESTADO: SITTING (sentados en la computadora)
-        // ============================================
         if (p.state === 'sitting') {
           const typingAnim = Math.sin(time * 4.0 + p.animOffset);
           p.body.position.y = 0.45 + typingAnim * 0.01;
@@ -1653,9 +2307,6 @@
           continue;
         }
 
-        // ============================================
-        // ESTADO: WANDERING
-        // ============================================
         if (p.state === 'wandering') {
           if (p.idleTime > 0) {
             p.idleTime -= delta * simSpeed;
@@ -1676,17 +2327,14 @@
           p.mesh.rotation.y += diff * 0.10;
 
           const moveAngle = p.mesh.rotation.y;
-          const step = Math.min(p.speed * WANDER_SPEED_FACTOR * dangerFactor * delta * simSpeed,
-                                MAX_SUBSTEP);
+          const step = Math.min(p.speed * WANDER_SPEED_FACTOR * dangerFactor * delta * simSpeed, MAX_SUBSTEP);
           const nextX = p.x + Math.sin(moveAngle) * step;
           const nextZ = p.z + Math.cos(moveAngle) * step;
 
           if (isWalkable(nextX, nextZ) && !isNearExit(nextX, nextZ)) {
-            p.x = nextX;
-            p.z = nextZ;
+            p.x = nextX; p.z = nextZ;
             p.mesh.position.set(p.x, 0, p.z);
             p.stuckFrames = 0;
-
             const walkCycle = Math.sin(time * 8 * p.speed + p.animOffset);
             p.body.position.y = 0.45 + Math.abs(walkCycle) * 0.05;
             p.head.position.y = 1.04 + Math.abs(walkCycle) * 0.05;
@@ -1703,26 +2351,17 @@
                 break;
               }
             }
-            if (!found) {
-              p.idleTime = 0.3 + Math.random() * 0.5;
-            }
+            if (!found) p.idleTime = 0.3 + Math.random() * 0.5;
             p.stuckFrames++;
             if (p.stuckFrames > 60) {
               const snap = snapToNearestWalkable(p.x, p.z);
-              if (snap) {
-                p.x = snap.x;
-                p.z = snap.z;
-                p.mesh.position.set(p.x, 0, p.z);
-              }
+              if (snap) { p.x = snap.x; p.z = snap.z; p.mesh.position.set(p.x, 0, p.z); }
               p.stuckFrames = 0;
             }
           }
           continue;
         }
 
-        // ============================================
-        // ESTADO: EVACUATING
-        // ============================================
         if (p.state === 'evacuating') {
           if (p.idleTime > 0) {
             p.idleTime -= delta * simSpeed;
@@ -1731,13 +2370,11 @@
             continue;
           }
 
-          /* --- Si ya alcanzó la salida, sale aunque haya congestión --- */
           if (!p.lost && isNearExit(p.x, p.z)) {
             removePerson(i);
             continue;
           }
 
-          /* --- Desorientación: se pierde y se dirige a un laboratorio equivocado --- */
           if (p.lost) {
             p.confusionTimer -= delta * simSpeed;
             if (p.confusionTimer <= 0) {
@@ -1751,14 +2388,12 @@
             maybeConfuse(p, delta);
           }
 
-          /* --- Dirección deseada: flujo hacia la salida o hacia el lugar equivocado --- */
           let dir;
           if (p.lost && p.confusionTarget) {
             const tdx = p.confusionTarget.x - p.x;
             const tdz = p.confusionTarget.z - p.z;
             const tdist = Math.hypot(tdx, tdz);
             if (tdist < 0.45) {
-              // Llegó al laboratorio equivocado: se detiene un instante y reacciona
               p.idleTime = 0.5 + Math.random() * 0.8;
               p.lost = false;
               p.confusionTarget = null;
@@ -1772,17 +2407,11 @@
               p.idleTime = 0.3 + Math.random() * 0.4;
               if (!isWalkable(p.x, p.z)) {
                 const snap = snapToNearestWalkable(p.x, p.z);
-                if (snap) {
-                  p.x = snap.x; p.z = snap.z;
-                  p.mesh.position.set(p.x, 0, p.z);
-                }
+                if (snap) { p.x = snap.x; p.z = snap.z; p.mesh.position.set(p.x, 0, p.z); }
               }
               continue;
             }
-            if (dir.arrived) {
-              removePerson(i);
-              continue;
-            }
+            if (dir.arrived) { removePerson(i); continue; }
           }
 
           const targetAngle = Math.atan2(dir.x, dir.z);
@@ -1800,11 +2429,17 @@
             p.stuckFrames = 0;
             p.bumpTimer = 0;
 
+            for (let di = 0; di < doorsList.length; di++) {
+              const d = doorsList[di];
+              if (!d.isOpen && Math.hypot(p.x - d.centerX, p.z - d.centerZ) < 1.1) {
+                d.open();
+              }
+            }
+
             const walkCycle = Math.sin(time * 10 * p.speed + p.animOffset);
             p.body.position.y = 0.45 + Math.abs(walkCycle) * 0.05;
             p.head.position.y = 1.04 + Math.abs(walkCycle) * 0.05;
           } else {
-            /* Totalmente bloqueado: choque con otras personas (embotellamiento) o pared */
             p.bumpTimer += delta * simSpeed;
             p.body.position.y = 0.45;
             p.head.position.y = 1.04;
@@ -1815,10 +2450,7 @@
             p.stuckFrames++;
             if (p.stuckFrames > 40) {
               const snap = snapToNearestWalkable(p.x, p.z);
-              if (snap) {
-                p.x = snap.x; p.z = snap.z;
-                p.mesh.position.set(p.x, 0, p.z);
-              }
+              if (snap) { p.x = snap.x; p.z = snap.z; p.mesh.position.set(p.x, 0, p.z); }
               p.stuckFrames = 0;
             }
           }
@@ -1827,7 +2459,7 @@
       }
     }
 
-    /* ---------- Motor de incendio ---------- */
+    /* MOTOR DE INCENDIO */
     function createFireSystem(x, z) {
       const origin = new THREE.Vector3(x, 0.2, z);
 
@@ -1903,7 +2535,7 @@
           smoke.visible = false;
         },
         update(time, dt) {
-          const dtSim = dt * simSpeed;   // segundos simulados transcurridos
+          const dtSim = dt * simSpeed;
           if (this.active) {
             light.intensity = 0.2 + Math.sin(time*15*simSpeed + origin.x)*0.1 + Math.random()*0.1;
             for (let i = 0; i < flameCount; i++) {
@@ -1936,8 +2568,6 @@
 
           const ceilingLimit = TECHO_HUMO;
           phase = (phase + 1) % SMOKE_STRIDE;
-          // Cada partícula se actualiza 1 de cada SMOKE_STRIDE frames;
-          // el desplazamiento por actualización cubre SMOKE_STRIDE frames de tiempo.
           const step = SMOKE_STRIDE * dtSim;
 
           for (let i = phase; i < this.activeSmokeCount; i += SMOKE_STRIDE) {
@@ -1958,7 +2588,8 @@
                 smokeVel[i].vz = Math.max(-SMOKE_SPREAD_MAX, Math.min(SMOKE_SPREAD_MAX, smokeVel[i].vz));
                 nextX += smokeVel[i].vx * step;
                 nextZ += smokeVel[i].vz * step;
-                sArr[idx+1] = ceilingLimit;
+                // Descenso lento de la capa de humo (0,01–0,03 m/s)
+                sArr[idx+1] -= smokeVel[i].cool * step;
               }
 
               const prevX = sArr[idx];
@@ -1971,7 +2602,7 @@
                   if (collisionGrid[gX + gZ * gridStepsX] === 1) blocked = true;
                 }
               }
-              if (!blocked && wouldHitBarrier(prevX, prevZ, nextX, nextZ)) blocked = true;
+              if (!blocked && wouldHitBarrier(prevX, prevZ, nextX, nextZ, sArr[idx+1])) blocked = true;
 
               if (blocked) {
                 smokeVel[i].vx *= -0.5;
@@ -2018,11 +2649,11 @@
       }
     });
 
-    /* ---------- Eventos de UI ---------- */
+    /* UI */
     const chkPersonas = document.getElementById('chk-personas');
     const chkMovimiento = document.getElementById('chk-movimiento');
     const chkEvacuacion = document.getElementById('chk-evacuacion');
-    const chkVentanas = document.getElementById('chk-ventanas');
+    const chkAutoRomper = document.getElementById('chk-auto-romper');
     const rngRojo = document.getElementById('rng-cant-rojo');
     const lblRojo = document.getElementById('lbl-cant-rojo');
     const rngVerde = document.getElementById('rng-cant-verde');
@@ -2031,8 +2662,8 @@
     const lblNaranja = document.getElementById('lbl-cant-naranja');
     const rngAzul = document.getElementById('rng-cant-azul');
     const lblAzul = document.getElementById('lbl-cant-azul');
-    const rngVel = document.getElementById('rng-sim-vel');
-    const lblVel = document.getElementById('lbl-sim-vel');
+    const rngSimVel = document.getElementById('rng-sim-vel');
+    const lblSimVel = document.getElementById('lbl-sim-vel');
     const btnResetPersonas = document.getElementById('btn-reset-personas');
 
     if (chkPersonas) {
@@ -2041,13 +2672,9 @@
         people.forEach(p => p.mesh.visible = isPeopleVisible);
       });
     }
-
     if (chkMovimiento) {
-      chkMovimiento.addEventListener('change', (e) => {
-        isPeopleMoving = e.target.checked;
-      });
+      chkMovimiento.addEventListener('change', (e) => { isPeopleMoving = e.target.checked; });
     }
-
     if (chkEvacuacion) {
       chkEvacuacion.addEventListener('change', (e) => {
         evacuationMode = e.target.checked;
@@ -2062,13 +2689,20 @@
         });
       });
     }
-
-    if (chkVentanas) {
-      chkVentanas.addEventListener('change', (e) => {
-        windowsOpen = e.target.checked;
+    if (chkAutoRomper) {
+      chkAutoRomper.addEventListener('change', (e) => { autoBreakOnMortal = e.target.checked; });
+    }
+    if (rngSimVel) {
+      rngSimVel.addEventListener('input', (e) => {
+        simSpeed = parseFloat(e.target.value);
+        if (lblSimVel) lblSimVel.textContent = simSpeed.toFixed(1) + 'x';
       });
     }
 
+    const btnRepararVidrios = document.getElementById('btn-reparar-vidrios');
+    if (btnRepararVidrios) {
+      btnRepararVidrios.addEventListener('click', () => { repairAllWindows(); });
+    }
 
     function respawnFromSliders() {
       spawnPeople(
@@ -2079,52 +2713,31 @@
       );
     }
 
-    if (rngRojo) {
-      rngRojo.addEventListener('input', (e) => {
-        const c = parseInt(e.target.value);
-        if (lblRojo) lblRojo.textContent = c;
-        spawnRoom('rojo', c);
-      });
-    }
-
-    if (rngVerde) {
-      rngVerde.addEventListener('input', (e) => {
-        const c = parseInt(e.target.value);
-        if (lblVerde) lblVerde.textContent = c;
-        spawnRoom('verde', c);
-      });
-    }
-
-    if (rngNaranja) {
-      rngNaranja.addEventListener('input', (e) => {
-        const c = parseInt(e.target.value);
-        if (lblNaranja) lblNaranja.textContent = c;
-        spawnRoom('naranja', c);
-      });
-    }
-
-    if (rngAzul) {
-      rngAzul.addEventListener('input', (e) => {
-        const c = parseInt(e.target.value);
-        if (lblAzul) lblAzul.textContent = c;
-        spawnRoom('azul', c);
-      });
-    }
-
-    if (rngVel) {
-      rngVel.addEventListener('input', (e) => {
-        simSpeed = parseFloat(e.target.value);
-        if (lblVel) lblVel.textContent = simSpeed.toFixed(1) + 'x';
-      });
-    }
-
+    if (rngRojo) rngRojo.addEventListener('input', (e) => {
+      const c = parseInt(e.target.value);
+      if (lblRojo) lblRojo.textContent = c;
+      spawnRoom('rojo', c);
+    });
+    if (rngVerde) rngVerde.addEventListener('input', (e) => {
+      const c = parseInt(e.target.value);
+      if (lblVerde) lblVerde.textContent = c;
+      spawnRoom('verde', c);
+    });
+    if (rngNaranja) rngNaranja.addEventListener('input', (e) => {
+      const c = parseInt(e.target.value);
+      if (lblNaranja) lblNaranja.textContent = c;
+      spawnRoom('naranja', c);
+    });
+    if (rngAzul) rngAzul.addEventListener('input', (e) => {
+      const c = parseInt(e.target.value);
+      if (lblAzul) lblAzul.textContent = c;
+      spawnRoom('azul', c);
+    });
     if (btnResetPersonas) {
-      btnResetPersonas.addEventListener('click', () => {
-        respawnFromSliders();
-      });
+      btnResetPersonas.addEventListener('click', () => { respawnFromSliders(); });
     }
 
-    /* ---------- Mapa de calor ---------- */
+    /* MAPA DE CALOR */
     const colorGreen  = new THREE.Color(0xa8e6a8);
     const colorYellow = new THREE.Color(0xffeb3b);
     const colorRed    = new THREE.Color(0xf44336);
@@ -2244,6 +2857,15 @@
 
         room.estado = estado;
 
+        if (autoBreakOnMortal && estado === 'Mortal') {
+          for (let w = 0; w < windowsList.length; w++) {
+            const win = windowsList[w];
+            if (!win.isBroken && win.room && win.room.id === room.id) {
+              shatterWindow(win, 'mortal');
+            }
+          }
+        }
+
         const el = document.getElementById(room.id);
         if (el) {
           if (el.textContent !== estado) el.textContent = estado;
@@ -2253,7 +2875,7 @@
       }
     }
 
-    /* ---------- Loop principal ---------- */
+    /* LOOP */
     const clock = new THREE.Clock();
     let frameCounter = 0, roomFrameCounter = 0;
 
@@ -2265,6 +2887,9 @@
 
       for (let i = 0; i < fires.length; i++) fires[i].update(time, delta);
       updatePeople(delta, time);
+      updateGlassShards(delta);
+      updateDoors(delta);
+      updateWindows(delta);
 
       if (frameCounter % HEATMAP_EVERY === 0) { computeDensity(); updateHeatmap(); }
       frameCounter++;
@@ -2296,16 +2921,13 @@
     }
     animate();
 
-    /* ---------- Resize ---------- */
     function onResize() {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
     window.addEventListener('resize', onResize);
-    window.addEventListener('orientationchange', () => {
-      setTimeout(onResize, 250);
-    });
+    window.addEventListener('orientationchange', () => { setTimeout(onResize, 250); });
 
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') toggleMenu(false);
