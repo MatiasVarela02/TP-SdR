@@ -96,6 +96,22 @@
     #person-tooltip .row b { color: #fff; }
     #person-tooltip .speed-val { color: #4fc3ff; font-weight: bold; }
     #focos-info { margin-top: 6px; font-size: 12px; color: #ff9955; text-align: right; }
+    #reloj-simulacion {
+      position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.85); color: #fff; padding: 8px 18px 10px;
+      border: 1px solid rgba(255,150,0,0.55); border-radius: 8px; text-align: center;
+      z-index: 50; pointer-events: none; user-select: none; -webkit-user-select: none;
+    }
+    #reloj-titulo {
+      font-size: 10px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;
+      color: #ff9955; margin-bottom: 2px;
+    }
+    #reloj-hora {
+      font-family: "Consolas", "Courier New", monospace; font-size: 24px; font-weight: bold;
+      letter-spacing: 2px; line-height: 1.1; font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 8px rgba(255,150,0,0.45);
+    }
+    #reloj-velocidad { font-size: 10px; color: #4fc3ff; margin-top: 1px; }
 
     @media (max-width: 768px), (pointer: coarse) and (max-width: 900px) {
       #btn-menu { display: flex; }
@@ -130,6 +146,10 @@
         top: auto; left: auto; border-width: 1px; z-index: 49;
       }
       #minimapa-titulo { font-size: 10px; padding: 4px 0; }
+      #reloj-simulacion { top: 62px; left: 10px; transform: none; padding: 5px 10px 6px; }
+      #reloj-titulo { font-size: 8px; }
+      #reloj-hora { font-size: 17px; letter-spacing: 1px; }
+      #reloj-velocidad { font-size: 9px; }
       .action-btn { font-size: 12px; }
       .victimas-section { display: none; }
       #victimas-movil {
@@ -159,6 +179,12 @@
 <body>
   <button id="btn-menu" type="button" aria-label="Menú">☰</button>
   <div id="ui-overlay"></div>
+
+  <div id="reloj-simulacion">
+    <div id="reloj-titulo">Reloj de Simulación</div>
+    <div id="reloj-hora">00:00:00</div>
+    <div id="reloj-velocidad">1.0x</div>
+  </div>
 
   <div id="ui">
     <strong>Focos de Incendio</strong>
@@ -257,6 +283,10 @@
                       /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
     let simSpeed = 1.0;
+    let simClockSeconds = (() => {
+      const d = new Date();
+      return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+    })();
     let isSmokeGenerating = true;
     let firePlacementMode = false;
 
@@ -3184,10 +3214,29 @@
     const clock = new THREE.Clock();
     let frameCounter = 0, roomFrameCounter = 0;
 
+    const relojHoraEl = document.getElementById('reloj-hora');
+    const relojVelEl = document.getElementById('reloj-velocidad');
+    let lastRelojHora = '', lastRelojVel = '';
+
+    function updateSimClock(delta) {
+      simClockSeconds = (simClockSeconds + delta * simSpeed) % 86400;
+      const total = Math.floor(simClockSeconds);
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      const pad = (n) => (n < 10 ? '0' : '') + n;
+      const hora = pad(h) + ':' + pad(m) + ':' + pad(s);
+      const vel = simSpeed.toFixed(1) + 'x';
+      if (hora !== lastRelojHora) { relojHoraEl.textContent = hora; lastRelojHora = hora; }
+      if (vel !== lastRelojVel) { relojVelEl.textContent = vel; lastRelojVel = vel; }
+    }
+
     function animate() {
       requestAnimationFrame(animate);
       const delta = Math.min(clock.getDelta(), 0.1);
       const time = clock.elapsedTime;
+
+      updateSimClock(delta);
 
       globalFireEmitScale = Math.min(1, 20 / Math.max(fires.length, 1));
 
