@@ -26,9 +26,19 @@
     #ui-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 99; }
     #ui {
       position: absolute; top: 15px; left: 15px; color: #fff;
-      background: rgba(0,0,0,0.85); padding: 15px 20px; border-radius: 8px;
-      font-size: 14px; line-height: 1.6; width: 260px;
+      background: rgba(0,0,0,0.85); padding: 12px 16px; border-radius: 8px;
+      font-size: 13px; line-height: 1.45; width: 250px;
+      max-height: calc(100vh - 30px); overflow-y: auto;
+      scrollbar-width: thin; scrollbar-color: #ff5500 rgba(255,255,255,0.12);
     }
+    #ui::-webkit-scrollbar { width: 6px; }
+    #ui::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    #ui::-webkit-scrollbar-thumb { background: #ff5500; border-radius: 3px; }
+    #ui .control-group { margin-top: 6px; }
+    #ui label { margin-bottom: 3px; }
+    #ui hr { margin: 8px 0; }
+    #ui .action-btn { margin-top: 7px; padding: 6px; }
+    #ui .control-group > div { margin-top: 6px !important; }
     .control-group { margin-top: 10px; }
     label { cursor: pointer; display: block; margin-bottom: 5px; transition: 0.2s; }
     label:hover { color: #ff5500; }
@@ -53,8 +63,13 @@
     .action-btn.btn-danger { background-color: #5c1a1a; border-color: #8b2b2b; }
     .action-btn.btn-danger:hover { background-color: #8b2b2b; border-color: #d93600; }
     #btn-detener-humo.stopped { background-color: #ff5500; border-color: #ff7700; }
+    #ui .victimas-section {
+      position: sticky; bottom: -12px; z-index: 2;
+      background: rgba(0,0,0,0.95);
+      margin: 0 -16px -12px; padding: 0 16px 6px;
+    }
     #contador-muertes {
-      margin-top: 4px; font-size: 26px; font-weight: bold; text-align: center;
+      margin-top: 2px; font-size: 22px; font-weight: bold; text-align: center;
       color: #ff4444; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255,0,0,0.6);
     }
     #victimas-movil { display: none; }
@@ -95,7 +110,84 @@
     #person-tooltip .row { display: flex; justify-content: space-between; gap: 10px; }
     #person-tooltip .row b { color: #fff; }
     #person-tooltip .speed-val { color: #4fc3ff; font-weight: bold; }
-    #focos-info { margin-top: 6px; font-size: 12px; color: #ff9955; text-align: right; }
+    #focos-info { margin-top: 4px; font-size: 12px; color: #ff9955; text-align: right; }
+    .intro-hidden { display: none !important; }
+    #intro-overlay {
+      position: fixed; inset: 0; z-index: 300; display: flex; align-items: center;
+      justify-content: center; padding: 20px; overflow-y: auto;
+      background: radial-gradient(circle at 50% 12%, #2a1206 0%, #0a0a0a 58%, #000 100%);
+      animation: introFade 0.35s ease-out;
+    }
+    @keyframes introFade { from { opacity: 0; } to { opacity: 1; } }
+    #intro-card {
+      width: 100%; max-width: 1180px; max-height: calc(100vh - 40px); overflow-y: auto;
+      background: rgba(14,14,14,0.97); color: #eee; border: 1px solid rgba(255,120,0,0.55);
+      border-radius: 14px; padding: 28px 32px 26px;
+      box-shadow: 0 18px 60px rgba(0,0,0,0.85), 0 0 40px rgba(255,85,0,0.12);
+      scrollbar-width: thin; scrollbar-color: #ff5500 rgba(255,255,255,0.1);
+    }
+    #intro-card::-webkit-scrollbar { width: 7px; }
+    #intro-card::-webkit-scrollbar-track { background: rgba(255,255,255,0.08); border-radius: 4px; }
+    #intro-card::-webkit-scrollbar-thumb { background: #ff5500; border-radius: 4px; }
+    .intro-eyebrow {
+      color: #ff9955; font-size: 11px; font-weight: bold; letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    #intro-card h1 { margin: 6px 0 8px; font-size: 27px; line-height: 1.2; color: #fff; }
+    .intro-sub { color: #b9b9b9; font-size: 14px; line-height: 1.55; margin: 0 0 16px; }
+    .intro-lead {
+      font-size: 14px; line-height: 1.6; color: #e6e6e6; margin: 0 0 16px;
+      border-left: 3px solid #ff5500; padding: 10px 14px;
+      background: rgba(255,85,0,0.08); border-radius: 0 8px 8px 0;
+    }
+    .intro-sections { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .intro-block {
+      background: rgba(255,255,255,0.045); border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .intro-block-wide { grid-column: 1 / -1; }
+    .intro-block h2 {
+      margin: 0 0 8px; font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase;
+      color: #ff9955;
+    }
+    .intro-block ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: #dcdcdc; }
+    .intro-block li { margin-bottom: 3px; }
+    .intro-block li:last-child { margin-bottom: 0; }
+    .intro-block b { color: #fff; }
+    .intro-data-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px;
+    }
+    .intro-data-item {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px; padding: 10px 12px;
+    }
+    .intro-data-label {
+      display: block; color: #b9b9b9; font-size: 10.5px; letter-spacing: 0.7px;
+      text-transform: uppercase;
+    }
+    .intro-data-value {
+      display: block; margin: 3px 0 4px; color: #4fc3ff; font-size: 15px;
+      font-weight: bold; line-height: 1.3;
+    }
+    .intro-data-desc { display: block; color: #a8a8a8; font-size: 12px; line-height: 1.45; }
+    .intro-data-note { margin-top: 10px; font-size: 12px; line-height: 1.5; color: #aaa; }
+    .intro-note {
+      margin-top: 14px; padding: 10px 14px; font-size: 12.5px; line-height: 1.55;
+      color: #cfcfcf; background: rgba(79,195,255,0.07);
+      border: 1px solid rgba(79,195,255,0.22); border-radius: 8px;
+    }
+    .intro-note b { color: #4fc3ff; }
+    #btn-iniciar-sim {
+      display: block; width: 100%; margin-top: 20px; padding: 14px;
+      background: linear-gradient(180deg, #ff6a00, #d93d00); color: #fff;
+      border: 1px solid #ff8800; border-radius: 10px; cursor: pointer;
+      font-size: 16px; font-weight: bold; letter-spacing: 0.6px;
+      box-shadow: 0 6px 18px rgba(255,85,0,0.35);
+      transition: transform 0.12s, box-shadow 0.2s, filter 0.2s;
+    }
+    #btn-iniciar-sim:hover { filter: brightness(1.12); box-shadow: 0 8px 24px rgba(255,85,0,0.5); }
+    #btn-iniciar-sim:active { transform: scale(0.985); }
+    .intro-hint { text-align: center; font-size: 11px; color: #888; margin-top: 9px; }
     #reloj-simulacion {
       position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
       background: rgba(0,0,0,0.85); color: #fff; padding: 8px 18px 10px;
@@ -129,7 +221,7 @@
       body.ui-open #ui::-webkit-scrollbar-thumb { background: #ff5500; border-radius: 3px; }
       body.ui-open input[type="checkbox"] { width: 18px; height: 18px; vertical-align: middle; }
       body.ui-open label { padding: 5px 0; font-size: 14px; margin-bottom: 3px; }
-      body.ui-open .action-btn { padding: 11px 0; font-size: 13px; min-height: 42px; }
+      body.ui-open #ui .action-btn { padding: 11px 0; font-size: 13px; min-height: 42px; }
       body.ui-open input[type="range"] { min-height: 26px; width: 100% !important; }
       body.ui-open hr { margin: 10px 0; }
       #tabla-seguridad {
@@ -150,6 +242,15 @@
       #reloj-titulo { font-size: 8px; }
       #reloj-hora { font-size: 17px; letter-spacing: 1px; }
       #reloj-velocidad { font-size: 9px; }
+      #intro-overlay { padding: 12px; align-items: flex-start; }
+      #intro-card { max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); padding: 20px 18px; border-radius: 12px; }
+      #intro-card h1 { font-size: 21px; }
+      .intro-sub { font-size: 13px; }
+      .intro-lead { font-size: 13px; }
+      .intro-sections { grid-template-columns: 1fr; gap: 10px; }
+      .intro-data-grid { grid-template-columns: 1fr; gap: 8px; }
+      .intro-block { padding: 12px 14px; }
+      #btn-iniciar-sim { font-size: 15px; padding: 13px; }
       .action-btn { font-size: 12px; }
       .victimas-section { display: none; }
       #victimas-movil {
@@ -177,6 +278,92 @@
   </style>
 </head>
 <body>
+  <div id="intro-overlay">
+    <div id="intro-card" role="dialog" aria-modal="true" aria-labelledby="intro-titulo">
+      <div class="intro-eyebrow">Simulación interactiva</div>
+      <h1 id="intro-titulo">Incendio y Evacuación en Laboratorios</h1>
+      <p class="intro-sub">Se representan los laboratorios Rojo, Verde, Naranja y Azul de la Universidad Tecnológica Nacional FRBA. Vas a poder originar incendios, observar cómo se propagan y analizar la evacuación.</p>
+
+      <p class="intro-lead"><b>Objetivo:</b> comprender cómo el fuego y el humo afectan la seguridad de cada sector y cómo responde la evacuación, evaluando el riesgo antes de que la intoxicación y el calor alcancen niveles críticos.</p>
+
+      <div class="intro-sections">
+        <div class="intro-block intro-block-wide">
+          <h2>Datos de la simulación</h2>
+          <div class="intro-data-grid">
+            <div class="intro-data-item">
+              <span class="intro-data-label">Velocidad al caminar</span>
+              <span class="intro-data-value">2,5 m/s en promedio</span>
+              <span class="intro-data-desc">Cada persona se mueve a una velocidad distinta, entre 1,5 y 4 m/s.</span>
+            </div>
+            <div class="intro-data-item">
+              <span class="intro-data-label">Reacción a la emergencia</span>
+              <span class="intro-data-value">Unos 20 s desde que detecta humo</span>
+              <span class="intro-data-desc">Si otra persona cercana ya está evacuando, puede reaccionar en 1 a 3 segundos.</span>
+            </div>
+            <div class="intro-data-item">
+              <span class="intro-data-label">Peligro del humo (escala 0 a 20)</span>
+              <span class="intro-data-value">0 = sin humo · 20 = humo máximo</span>
+              <span class="intro-data-desc">Desde 0,5 el humo empieza a intoxicar y a frenar a las personas.</span>
+            </div>
+            <div class="intro-data-item">
+              <span class="intro-data-label">Tiempo de intoxicación</span>
+              <span class="intro-data-value">30 s con humo máximo</span>
+              <span class="intro-data-desc">Si el humo es extremo, una persona puede morir en medio minuto.</span>
+            </div>
+            <div class="intro-data-item">
+              <span class="intro-data-label">Propagación del fuego</span>
+              <span class="intro-data-value">55 a 65 s</span>
+              <span class="intro-data-desc">Tiempo estimado para que el fuego pase de un sector a otro. Cada foco puede crecer hasta 2,8 m de radio.</span>
+            </div>
+            <div class="intro-data-item">
+              <span class="intro-data-label">Estado de cada sector</span>
+              <span class="intro-data-value">Normal → Peligroso → Muy peligroso → Mortal</span>
+              <span class="intro-data-desc">Se calcula según cuánta superficie del sector está cubierta por humo.</span>
+            </div>
+            <div class="intro-data-item">
+              <span class="intro-data-label">Velocidad de la simulación</span>
+              <span class="intro-data-value">0,5x a 8x</span>
+              <span class="intro-data-desc">Acelera o frena el fuego, el humo y el reloj. Las reglas no cambian.</span>
+            </div>
+            <div class="intro-data-item">
+              <span class="intro-data-label">Personas y víctimas</span>
+              <span class="intro-data-value">Salud de 0% a 100%</span>
+              <span class="intro-data-desc">La intoxicación baja la salud; al llegar a 0% la persona muere.</span>
+            </div>
+          </div>
+        </div>
+        <div class="intro-block">
+          <h2>Para qué sirve</h2>
+          <ul>
+            <li>Visualizar la propagación del fuego y del humo entre sectores.</li>
+            <li>Estimar tiempos de evacuación y cantidad de víctimas.</li>
+            <li>Comparar la seguridad de cada laboratorio y tomar decisiones.</li>
+          </ul>
+        </div>
+        <div class="intro-block">
+          <h2>Cómo usar</h2>
+          <ul>
+            <li>Ajustá la velocidad y generá un incendio con un clic en el mapa.</li>
+            <li>Hacé clic sobre una persona para ver sus datos.</li>
+            <li>Seguí el mapa de calor y la tabla de estado de seguridad.</li>
+          </ul>
+        </div>
+        <div class="intro-block">
+          <h2>Qué observar</h2>
+          <ul>
+            <li>Cómo el humo se desplaza por puertas y aberturas.</li>
+            <li>Qué sectores se vuelven mortales primero.</li>
+            <li>Cuántas personas logran evacuar y cuántas quedan atrapadas.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="intro-note"><b>Consejo:</b> probá distintas ubicaciones del foco y velocidades de simulación. Los resultados cambian según las puertas, los vidrios y el momento en que se detecta el humo.</div>
+
+      <button id="btn-iniciar-sim" type="button">Iniciar simulación</button>
+    </div>
+  </div>
+
   <button id="btn-menu" type="button" aria-label="Menú">☰</button>
   <div id="ui-overlay"></div>
 
@@ -287,6 +474,7 @@
       const d = new Date();
       return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
     })();
+    let simStarted = false;
     let isSmokeGenerating = true;
     let firePlacementMode = false;
 
@@ -3236,23 +3424,25 @@
       const delta = Math.min(clock.getDelta(), 0.1);
       const time = clock.elapsedTime;
 
-      updateSimClock(delta);
+      if (simStarted) {
+        updateSimClock(delta);
 
-      globalFireEmitScale = Math.min(1, 20 / Math.max(fires.length, 1));
+        globalFireEmitScale = Math.min(1, 20 / Math.max(fires.length, 1));
 
-      for (let i = 0; i < fires.length; i++) fires[i].update(time, delta);
-      updateServerFireDetection(delta);
-      updateFireSpread(delta);
-      updateExplosionBursts(delta);
-      updatePeople(delta, time);
-      updateGlassShards(delta);
-      updateDoors(delta);
-      updateWindows(delta);
+        for (let i = 0; i < fires.length; i++) fires[i].update(time, delta);
+        updateServerFireDetection(delta);
+        updateFireSpread(delta);
+        updateExplosionBursts(delta);
+        updatePeople(delta, time);
+        updateGlassShards(delta);
+        updateDoors(delta);
+        updateWindows(delta);
 
-      if (frameCounter % HEATMAP_EVERY === 0) { computeDensity(); updateHeatmap(); }
-      frameCounter++;
-      if (roomFrameCounter % ROOM_STATUS_EVERY === 0) updateRoomStatus();
-      roomFrameCounter++;
+        if (frameCounter % HEATMAP_EVERY === 0) { computeDensity(); updateHeatmap(); }
+        frameCounter++;
+        if (roomFrameCounter % ROOM_STATUS_EVERY === 0) updateRoomStatus();
+        roomFrameCounter++;
+      }
 
       controls.update();
       renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
@@ -3274,6 +3464,24 @@
       }
     }
     animate();
+
+    const introOverlay = document.getElementById('intro-overlay');
+    const btnIniciarSim = document.getElementById('btn-iniciar-sim');
+
+    function startSimulation() {
+      if (simStarted) return;
+      const d = new Date();
+      simClockSeconds = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+      lastRelojHora = '';
+      lastRelojVel = '';
+      simStarted = true;
+      introOverlay.classList.add('intro-hidden');
+    }
+
+    if (btnIniciarSim) btnIniciarSim.addEventListener('click', startSimulation);
+    window.addEventListener('keydown', (e) => {
+      if (!simStarted && e.key === 'Enter') { e.preventDefault(); startSimulation(); }
+    });
 
     function onResize() {
       camera.aspect = window.innerWidth / window.innerHeight;
