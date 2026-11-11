@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>Simulador de Incendio - Propagación Realista por Puertas</title>
+  <title>Simulador de Incendio</title>
   <style>
     * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
     html, body {
@@ -72,6 +72,7 @@
       color: #ff4444; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255,0,0,0.6);
     }
     #victimas-movil { display: none; }
+    #btn-ver-fps { display: none; }
     #tabla-seguridad {
       position: absolute; top: 15px; right: 15px; color: #fff;
       background: rgba(0,0,0,0.85); padding: 12px 15px; border-radius: 8px;
@@ -90,6 +91,8 @@
       border: 2px solid rgba(255,255,255,0.4); border-radius: 8px; overflow: hidden;
       box-shadow: 0 4px 10px rgba(0,0,0,0.8); pointer-events: none; z-index: 10;
     }
+    #minimapa-marco.perf-hidden,
+    #corte-marco.perf-hidden { display: none !important; }
     #minimapa-titulo {
       background: rgba(0,0,0,0.85); color: #6ee88a; font-size: 12px; font-weight: bold;
       text-align: center; padding: 6px 0; text-transform: uppercase; letter-spacing: 0.5px;
@@ -198,6 +201,7 @@
     body.corte-maximized #minimapa-marco,
     body.corte-maximized #reloj-simulacion,
     body.corte-maximized #victimas-movil,
+    body.corte-maximized #mobile-perf-controls,
     body.corte-maximized #btn-menu { display: none !important; }
     #person-tooltip {
       display: none; position: fixed; background: rgba(0,0,0,0.94); color: #fff;
@@ -223,10 +227,29 @@
       border-top: 1px solid #444; padding-top: 5px; opacity: 0.85;
     }
     #focos-info { margin-top: 4px; font-size: 12px; color: #6ee88a; text-align: right; }
+    #mobile-perf-controls {
+      display: none; position: fixed; left: 148px; bottom: 8px;
+      z-index: 103; flex-direction: row; gap: 6px; pointer-events: auto;
+    }
+    .mob-btn {
+      background: rgba(0, 0, 0, 0.88); color: #999;
+      border: 1px solid rgba(47, 191, 79, 0.4); border-radius: 10px;
+      padding: 8px 12px; font: 700 11px Consolas, monospace;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      min-height: 42px; min-width: 62px;
+      touch-action: manipulation; user-select: none; -webkit-user-select: none;
+      transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+    }
+    .mob-btn:active { transform: scale(0.95); }
+    .mob-btn.active { background: rgba(47, 191, 79, 0.35); color: #ffffff; border-color: #3dd166; }
+    body.ui-open #mobile-perf-controls { display: none !important; }
 
-    /* ═══════════════════════════════════════════════════════════════
-       PRESENTACIÓN (portada desde ejemplo08, tema verde)
-       ═══════════════════════════════════════════════════════════════ */
+    /* Ocultar elementos de POV en celular (Cambio 3) */
+    body.is-mobile .pov-intro-hint,
+    body.is-mobile #pov-hud,
+    body.is-mobile .ctl-panel-keyboard,
+    body.is-mobile .ctl-caps .c2 { display: none !important; }
+
     .intro-hidden { display: none !important; }
     #intro-overlay {
       position: fixed; inset: 0; z-index: 300; display: flex; align-items: center;
@@ -237,8 +260,7 @@
     @keyframes introFade { from { opacity: 0; } to { opacity: 1; } }
     #intro-card {
       width: 100%; max-width: 1800px; max-height: calc(100vh - 24px);
-      max-height: calc(100dvh - 24px);
-      overflow: hidden;
+      max-height: calc(100dvh - 24px); overflow: hidden;
       display: flex; flex-direction: column;
       background: rgba(14,14,14,0.97); color: #eee; border: 1px solid rgba(47,191,79,0.55);
       border-radius: 14px; padding: 22px 28px 18px;
@@ -246,8 +268,7 @@
       scrollbar-width: thin; scrollbar-color: #2fbf4f rgba(255,255,255,0.1);
     }
     .intro-scroll {
-      flex: 1 1 auto; min-height: 0; overflow-y: auto;
-      padding-right: 8px;
+      flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 8px;
       scrollbar-width: thin; scrollbar-color: #2fbf4f rgba(255,255,255,0.1);
     }
     .intro-scroll::-webkit-scrollbar { width: 7px; }
@@ -271,10 +292,12 @@
     }
     .intro-block-wide { grid-column: 1 / -1; }
     .intro-block h2 { margin: 0 0 8px; font-size: 12px; letter-spacing: 0.8px; text-transform: uppercase; color: #6ee88a; }
+    .intro-block h2.intro-uso-teclas-title { margin-top: 14px; }
     .intro-block ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; color: #dcdcdc; }
     .intro-block li { margin-bottom: 3px; }
     .intro-block li:last-child { margin-bottom: 0; }
     .intro-block b { color: #fff; }
+    .intro-uso-teclas-list b { color: #4fc3ff; }
     .intro-data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
     .intro-data-item {
       background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
@@ -299,15 +322,12 @@
     }
     #btn-iniciar-sim:hover { filter: brightness(1.12); box-shadow: 0 8px 24px rgba(47,191,79,0.5); }
     #btn-iniciar-sim:active { transform: scale(0.985); }
-
     @media (max-width: 768px) {
       #intro-card { padding: 20px 18px; }
       #intro-card h1 { font-size: 21px; }
       .intro-sections { grid-template-columns: 1fr; }
       .intro-data-grid { grid-template-columns: 1fr; }
     }
-
-    /* ═══ MINI-ANIMACIONES ═══ */
     .intro-data-grid.intro-anim-grid { grid-template-columns: repeat(4, 1fr); }
     .anim-wrap { position: relative; aspect-ratio: 8 / 5; margin-bottom: 8px; border-radius: 7px; overflow: hidden; background: #15181d; border: 1px solid rgba(255,255,255,0.08); }
     .anim-wrap canvas { display: block; width: 100%; height: 100%; }
@@ -321,8 +341,6 @@
     @media (max-width: 1000px) { .intro-data-grid.intro-anim-grid { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 768px) { .intro-more-grid { grid-template-columns: 1fr; } }
     @media (max-width: 560px) { .intro-data-grid.intro-anim-grid { grid-template-columns: 1fr; } }
-
-    /* ═══ ANIMACIÓN DE CONTROLES ═══ */
     .controls-anim { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
     .ctl-panel { background: #15181d; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; min-height: 190px; }
     .ctl-title { color: #4fc3ff; font-size: 11px; font-weight: bold; letter-spacing: .8px; text-transform: uppercase; }
@@ -343,13 +361,11 @@
     .ctl-caps .c2 { animation-delay: 2s; } .ctl-caps .c3 { animation-delay: 4s; } .ctl-caps .c4 { animation-delay: 6s; }
     @keyframes capShow { 0% { opacity: 0; } 2%, 23% { opacity: 1; } 25%, 100% { opacity: 0; } }
     @media (max-width: 560px) { .controls-anim { grid-template-columns: 1fr; } }
-
-    /* ═══ LAYOUT ANCHO ═══ */
     @media (min-width: 1100px) {
       .intro-sections { grid-template-columns: minmax(0, 1fr) 380px; }
       .intro-sections .intro-datos { grid-column: 1; grid-row: 1; }
       .intro-sections .intro-more  { grid-column: 1; grid-row: 2; }
-      .intro-sections .intro-uso   { grid-column: 2; grid-row: 1; }
+      .intro-sections .intro-uso   { grid-column: 2; grid-row: 1 / span 2; }
       .intro-data-grid.intro-anim-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .controls-anim { gap: 8px; }
       .ctl-panel { padding: 10px 6px; min-height: 170px; }
@@ -371,7 +387,6 @@
       .intro-foot #btn-iniciar-sim { order: 2; }
       .intro-foot .intro-note { order: 1; width: 100%; flex: 0 0 auto; }
     }
-
     #reloj-simulacion {
       position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
       background: rgba(0,0,0,0.85); color: #fff; padding: 8px 18px 10px;
@@ -432,6 +447,7 @@
       body.ui-open #ui .action-btn { padding: 11px 0; font-size: 13px; min-height: 42px; }
       body.ui-open input[type="range"] { min-height: 26px; width: 100% !important; }
       body.ui-open hr { margin: 10px 0; }
+      #btn-ver-fps { display: block; }
       #tabla-seguridad {
         position: fixed; top: 10px; right: 10px; left: auto; bottom: auto;
         width: auto; min-width: 0; max-width: 60vw; z-index: 50;
@@ -457,11 +473,10 @@
       .corte-ctrl-btn { width: 18px; height: 18px; }
       .corte-scale-btn { min-width: 20px; height: 18px; font-size: 8.5px; padding: 0 2px; }
       #btn-ui-restore { display: none !important; }
-      #reloj-simulacion { top: 62px; left: 10px; transform: none; padding: 5px 10px 6px; }
+      #reloj-simulacion { top: 10px; left: 62px; right: auto; transform: none; padding: 5px 10px 6px; text-align: left; }
       #reloj-titulo { font-size: 8px; }
       #reloj-hora { font-size: 17px; letter-spacing: 1px; }
       #reloj-velocidad { font-size: 9px; }
-      body.pov-active #reloj-simulacion { top: 62px; bottom: auto; left: 8px; right: auto; transform: none; }
       body.pov-active #pov-hud { left: auto; right: 8px; transform: none; max-width: calc(100vw - 160px); }
       #intro-overlay { padding: 12px; align-items: flex-start; }
       #intro-card { max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); padding: 20px 18px; border-radius: 12px; }
@@ -479,6 +494,7 @@
         font-size: 24px; font-weight: bold; line-height: 1.1;
         color: #ff4444; letter-spacing: 1px; text-shadow: 0 0 8px rgba(255,0,0,0.6);
       }
+      #mobile-perf-controls { display: flex; }
     }
     @media (max-width: 400px) {
       #minimapa-marco { width: 108px; height: 108px; }
@@ -490,6 +506,21 @@
       #tabla-seguridad { font-size: 10px; padding: 6px 8px; }
       #tabla-seguridad td { padding: 2px 4px; }
     }
+    #perf-panel {
+      position: fixed; top: 15px; right: 280px;
+      background: rgba(0, 0, 0, 0.82); color: #3dff7a;
+      font: 600 11px/1.45 Consolas, "Courier New", monospace;
+      padding: 8px 11px; border: 1px solid rgba(61, 255, 122, 0.35);
+      border-radius: 6px; pointer-events: none; z-index: 9999;
+      white-space: pre; letter-spacing: 0.2px; min-width: 220px;
+      text-shadow: 0 0 4px rgba(61, 255, 122, 0.4);
+    }
+    @media (max-width: 1100px) {
+      #perf-panel {
+        top: 120px; left: 8px; right: auto;
+        font-size: 9px; line-height: 1.35; padding: 5px 7px; min-width: 0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -499,18 +530,16 @@
         <div class="intro-eyebrow">Simulación interactiva</div>
         <h1>Incendio y Evacuación en Laboratorios</h1>
         <p class="intro-sub">Se representan los laboratorios Rojo, Verde, Naranja y Azul de la Universidad Tecnológica Nacional FRBA. Vas a poder originar incendios, observar cómo se propagan y analizar la evacuación.</p>
-
         <p class="intro-lead"><b>Objetivo:</b> comprender cómo el fuego y el humo afectan la seguridad de cada sector y cómo responde la evacuación, evaluando el riesgo antes de que la intoxicación y el calor alcancen niveles críticos.</p>
-
         <div class="intro-sections">
           <div class="intro-block intro-block-wide intro-datos">
             <h2>Datos de la simulación</h2>
             <div class="intro-data-grid intro-anim-grid">
               <div class="intro-data-item">
                 <div class="anim-wrap"><canvas class="intro-anim" data-anim="walk"></canvas><div class="anim-hud"></div></div>
-                <span class="intro-data-label">Velocidad al caminar</span>
-                <span class="intro-data-value">2,5 m/s en promedio</span>
-                <span class="intro-data-desc">Cada persona va a su ritmo: de 1,5 a 4 m/s.</span>
+                <span class="intro-data-label">Velocidad de desplazamiento</span>
+                <span class="intro-data-value">1,4 m/s en promedio</span>
+                <span class="intro-data-desc">Cada persona va a su ritmo: de 0,8 a 2,08 m/s.</span>
               </div>
               <div class="intro-data-item">
                 <div class="anim-wrap"><canvas class="intro-anim" data-anim="reaccion"></canvas><div class="anim-hud"></div></div>
@@ -541,10 +570,10 @@
             <ul>
               <li>Ajustá la velocidad y generá un incendio con un clic en el mapa.</li>
               <li>Hacé clic sobre una persona para ver sus datos.</li>
-              <li>Hacé doble clic sobre una persona para entrar en modo POV.</li>
+              <li class="pov-intro-hint">Hacé doble clic sobre una persona para entrar en modo POV.</li>
             </ul>
             <div class="controls-anim">
-              <div class="ctl-panel">
+              <div class="ctl-panel ctl-panel-keyboard">
                 <div class="ctl-title">Teclado</div>
                 <div class="keys"><div class="key k-w">W</div><div class="key k-a">A</div><div class="key k-s">S</div><div class="key k-d">D</div></div>
                 <div class="ctl-caps"><span>Moverte en modo POV</span></div>
@@ -562,26 +591,18 @@
                 <div class="ctl-caps"><span class="c1">Clic: crear incendio o elegir persona</span><span class="c2">Doble clic: modo POV</span><span class="c3">Rueda: zoom</span><span class="c4">Arrastrar: orbitar la cámara</span></div>
               </div>
             </div>
+            <h2 class="intro-uso-teclas-title">Teclas</h2>
+            <ul class="intro-uso-teclas-list">
+              <li><b>P:</b> Ver/Ocultar FPS</li>
+              <li><b>1:</b> Activar/Desactivar Mapa de calor</li>
+              <li><b>2:</b> Activar/Desactivar Vista de Cortes</li>
+            </ul>
           </div>
           <details class="intro-block intro-block-wide intro-more">
             <summary>Más información: para qué sirve y qué observar</summary>
             <div class="intro-more-grid">
-              <div class="intro-block">
-                <h2>Para qué sirve</h2>
-                <ul>
-                  <li>Visualizar la propagación del fuego y del humo entre sectores.</li>
-                  <li>Estimar tiempos de evacuación y cantidad de víctimas.</li>
-                  <li>Comparar la seguridad de cada laboratorio y tomar decisiones.</li>
-                </ul>
-              </div>
-              <div class="intro-block">
-                <h2>Qué observar</h2>
-                <ul>
-                  <li>Cómo el humo se desplaza por puertas y aberturas.</li>
-                  <li>Qué sectores se vuelven mortales primero.</li>
-                  <li>Cuántas personas logran evacuar y cuántas quedan atrapadas.</li>
-                </ul>
-              </div>
+              <div class="intro-block"><h2>Para qué sirve</h2><ul><li>Visualizar la propagación del fuego y del humo entre sectores.</li><li>Comparar escenarios de forma cualitativa: cómo cambian el humo y la evacuación según dónde se origina el fuego y cómo están las puertas.</li><li>Entender por qué importan la detección temprana, las alarmas y las vías de salida.</li></ul></div>
+              <div class="intro-block"><h2>Qué observar</h2><ul><li>Cómo el humo se desplaza por puertas y aberturas.</li><li>Qué sectores se vuelven mortales primero.</li><li>Cuántas personas logran evacuar y cuántas quedan atrapadas.</li></ul></div>
             </div>
           </details>
         </div>
@@ -592,21 +613,17 @@
       </div>
     </div>
   </div>
-
   <button id="btn-menu" type="button" aria-label="Menú">☰</button>
   <div id="ui-overlay"></div>
-
   <div id="reloj-simulacion">
     <div id="reloj-titulo">Reloj de Simulación</div>
     <div id="reloj-hora">00:00:00</div>
     <div id="reloj-velocidad">1.0x</div>
   </div>
-
   <button id="btn-ui-restore" type="button" title="Mostrar menú de controles" aria-label="Mostrar menú">
     <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.2" fill="none"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
     <span>Focos / Menú</span>
   </button>
-
   <div id="ui">
     <div id="ui-top-bar">
       <span class="ui-panel-title">Focos de Incendio</span>
@@ -669,27 +686,28 @@
     </div>
     <button id="btn-reset-personas" class="action-btn" style="margin-top: 8px;">Reubicar en Computadoras</button>
     <button id="btn-ver-presentacion" class="action-btn" style="margin-top: 8px;">Ver presentación</button>
+    <button id="btn-ver-fps" class="action-btn" style="margin-top: 8px;">Ver FPS</button>
     <div class="victimas-section">
       <hr>
       <strong>Víctimas</strong>
       <div id="contador-muertes">0</div>
     </div>
   </div>
-
   <div id="victimas-movil">
     <div id="victimas-movil-titulo">Víctimas</div>
     <div id="contador-muertes-movil">0</div>
   </div>
-
+  <div id="mobile-perf-controls">
+    <button type="button" id="mob-btn-minimap" class="mob-btn">Mapa</button>
+    <button type="button" id="mob-btn-corte" class="mob-btn">Corte</button>
+  </div>
   <div id="person-tooltip"></div>
-
   <div id="pov-hud">
     <span class="pov-icon">👁️</span>
     <span>POV: <b id="pov-name">-</b><span id="pov-state">-</span></span>
     <button id="pov-super" title="Controlar con flechas">🎮 Manual</button>
     <button id="pov-exit" title="Salir (Esc)">✕ Salir</button>
   </div>
-
   <div id="tabla-seguridad">
     <h3>Estado de Seguridad</h3>
     <table>
@@ -704,7 +722,6 @@
       </tbody>
     </table>
   </div>
-
   <div id="corte-marco">
     <div id="corte-header">
       <div id="corte-titulo" title="Clic para alternar plano de corte (Trasera, Frente, Izquierda, Derecha)">Vista Trasera</div>
@@ -717,7 +734,6 @@
       </div>
     </div>
   </div>
-
   <div id="minimapa-marco">
     <div id="minimapa-titulo">MAPA DE CALOR</div>
   </div>
@@ -728,24 +744,44 @@
   <script>
     const IS_MOBILE = window.matchMedia('(max-width: 768px)').matches ||
                       /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (IS_MOBILE) document.body.classList.add('is-mobile');
 
+    const PERF = {
+      showFps: false, shadowsOncePerFrame: true, shadowUpdateEvery: 2, shadowFrustumAuto: true,
+      basicShadows: false, useSecondaryRT: true, secondaryViewEvery: 2, pixelRatioCap: 1.5,
+      dynamicResolution: false, antialias: true, freezeStatic: false, relaxUpdates: false,
+      mergeWorkstations: true, cheapMaterials: false, instanceComputers: false,
+      limitFireLights: true, maxFireLights: 4, reduceSmoke: true, reduceMaxFires: true,
+      diag_hideMinimap: false, diag_hideCorte: false, diag_hideShadows: false,
+      preset: 'original',
+      _panelEl: null, _contentEl: null, _samples: [], _lastFrameMs: 0, _lastDOMUpdate: 0,
+      _allTimeMinFps: Infinity, _allTimeSumFps: 0, _allTimeFrameCount: 0,
+      _passStats: { main: {calls:0, tris:0}, minimap: {calls:0, tris:0}, corte: {calls:0, tris:0} },
+      _lastDynCheck: 0, _lowFpsStart: 0, _highFpsStart: 0, _lastDynChange: 0
+    };
+
+    const PRESETS = {
+      original: { shadowsOncePerFrame: false, shadowUpdateEvery: 1, useSecondaryRT: false, secondaryViewEvery: 1, pixelRatioCap: 1.5, dynamicResolution: false, freezeStatic: false, relaxUpdates: false, reduceSmoke: false, reduceMaxFires: false, limitFireLights: true, mergeWorkstations: false },
+      alto:     { shadowsOncePerFrame: true,  shadowUpdateEvery: 1, useSecondaryRT: true,  secondaryViewEvery: 1, pixelRatioCap: 1.5, dynamicResolution: false, freezeStatic: false, relaxUpdates: false, reduceSmoke: false, reduceMaxFires: false, limitFireLights: false, mergeWorkstations: true },
+      medio:    { shadowsOncePerFrame: true,  shadowUpdateEvery: 2, useSecondaryRT: true,  secondaryViewEvery: 2, pixelRatioCap: 1.25, dynamicResolution: false, freezeStatic: true,  relaxUpdates: false, reduceSmoke: true,  reduceMaxFires: true,  limitFireLights: true, mergeWorkstations: true },
+      bajo:     { shadowsOncePerFrame: true,  shadowUpdateEvery: 1, useSecondaryRT: true,  secondaryViewEvery: 2, pixelRatioCap: 1.0, dynamicResolution: true, freezeStatic: true,  relaxUpdates: true,  reduceSmoke: true,  reduceMaxFires: true,  limitFireLights: true,  mergeWorkstations: true }
+    };
+
+    const FIRE_LIGHT_POOL = [];
     let simSpeed = 1.0;
-    let simClockSeconds = (() => {
-      const d = new Date();
-      return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
-    })();
+    let simClockSeconds = (() => { const d = new Date(); return d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds(); })();
     let simStarted = false;
     let presentationOpen = false;
     let isSmokeGenerating = true;
     let firePlacementMode = false;
 
     const TECHO_HUMO           = 2.55;
-    const MAX_SMOKE            = IS_MOBILE ? 3500 : 7000;
+    const MAX_SMOKE            = (IS_MOBILE || PERF.reduceSmoke) ? 3500 : 7000;
     const SMOKE_FLOOR          = 0.6;
     const SMOKE_SPAWN_Y        = 0.7;
     const SMOKE_STRIDE         = 4;
     const HEATMAP_INTENSITY    = 0.45;
-    const HEATMAP_EVERY        = IS_MOBILE ? 3 : 2;
+    const HEATMAP_EVERY        = IS_MOBILE ? 3 : (PERF.relaxUpdates ? 4 : 2);
     const PLUME_RISE_MIN       = 1.0;
     const PLUME_RISE_MAX       = 3.0;
     const SMOKE_SPREAD_MIN     = 0.3;
@@ -758,14 +794,12 @@
     const FLAME_RISE_MAX       = 2.5;
     const FLAME_TOP            = 1.0;
     const FLAME_SERVER_TOP     = 2.5;
-
     const HUMO_THRESHOLD     = 0.8;
     const SMOKE_SAFE_DENSITY = 0.5;
     const SMOKE_FED_TIME     = 30.0;
     const FIRE_PROXIMITY_RADIUS = 1.0;
     const FIRE_PROXIMITY_REACTION_DELAY = 3.0;
-
-    const ROOM_STATUS_EVERY = 1;
+    const ROOM_STATUS_EVERY = PERF.relaxUpdates ? 3 : 1;
     const ROOM_RED_T        = 0.30;
     const ROOM_YELLOW_T     = 0.08;
     const ROOM_RED_PCT      = 0.28;
@@ -775,11 +809,10 @@
     const ROOM_AVG_VDANGER  = 8;
     const ROOM_WARM_PCT     = 0.10;
     const ROOM_AVG_DANGER   = 2;
-
-    const WALK_SPEED_MEAN     = 2.50;
-    const WALK_SPEED_SD       = 0.60;
-    const WALK_SPEED_MIN      = 1.50;
-    const WALK_SPEED_MAX      = 4.00;
+    const WALK_SPEED_MEAN     = 1.40;
+    const WALK_SPEED_SD       = 0.25;
+    const WALK_SPEED_MIN      = 0.80;
+    const WALK_SPEED_MAX      = 2.08;
     const WANDER_SPEED_FACTOR = 0.65;
     const CONTAGION_RADIUS    = 0.9;
     const CONTAGION_DELAY_MIN = 1.0;
@@ -789,10 +822,8 @@
     const PREMOVEMENT_SIGMA   = 0.6;
     const PREMOVEMENT_MIN_T   = 2.0;
     const PREMOVEMENT_MAX_T   = 180.0;
-
     const VIS_BREAKS  = [0.10, 0.25, 0.45, 0.70];
-    const VIS_FACTORS = [1.00, 0.80, 0.60, 0.40, 0.20];
-
+    const VIS_FACTORS = [1.00, 0.90, 0.75, 0.60, 0.45];
     const PERSON_COLLISION_R   = 0.28;
     const CONFUSION_CHANCE     = 0.03;
     const CONFUSION_TIME_MIN   = 2.5;
@@ -800,12 +831,9 @@
     const CONFUSION_SAFE_R     = 3.5;
     const CONFUSION_COOLDOWN   = 6.0;
     const LAB_ROOM_IDX_S       = [0, 2, 3, 4];
-
     const FIRE_AVOID_RADIUS    = 2.2;
     const FIRE_SWITCH_COOLDOWN = 3.0;
-
     const HEALTH_LEVELS = 20;
-
     const FIRE_GROWTH_RATE              = 1 / 300;
     const FIRE_INTENSITY_START_MANUAL   = 0.35;
     const FIRE_INTENSITY_START_SPREAD   = 0.15;
@@ -814,31 +842,39 @@
     const FIRE_SPREAD_CHANCE_PER_SEC    = 0.005;
     const FIRE_SPREAD_DELAY_MIN         = 55;
     const FIRE_SPREAD_DELAY_MAX         = 65;
-    const MAX_FIRES_MANUAL              = IS_MOBILE ? 5 : 15;
+    const MAX_FIRES_MANUAL              = IS_MOBILE ? 5 : 14;
     const MAX_FIRES_ABSOLUTE            = IS_MOBILE ? 20 : 50;
     const SPREAD_SMOKE_POOL             = 3500;
-    const SMOKE_BUDGET                  = IS_MOBILE ? 100000 : 300000;
+    const SMOKE_BUDGET                  = IS_MOBILE ? 100000 : (PERF.reduceSmoke ? 120000 : 300000);
     const PERSON_DOOR_OPEN_DELAY        = 0.3;
     const TOOLTIP_DURATION              = 5000;
-
     const SERVER_IGNITE_DELAY           = 10;
     const SERVER_EXPLOSION_DELAY        = 15;
     const SERVER_ON_TOP_MARGIN          = 0.2;
     const SERVER_ROOM_BOUNDS            = { minX: 9.91, maxX: 11.91, minZ: -9.95, maxZ: -7.95 };
-
     const FIRST_SPREAD_DELAY_SECONDS    = 30;
-
     const CUT_FLAME_COLOR = 0x9933ff;
     const CUT_SMOKE_COLOR = 0xff8833;
     const CUT_SMOKE_SIZE_FACTOR = 1 / 3;
-
     const POV_RETURN_MAX_DIST = 5.0;
     const POV_PERSON_HEIGHT   = 1.2;
     const DOUBLE_CLICK_MS     = 400;
-
     const SMOKE_MAIN_OPACITY    = 0.40;
     const SMOKE_MINIMAP_OPACITY = 0.25;
 
+    try {
+      const _urlParams = new URLSearchParams(location.search);
+      const _urlPreset = _urlParams.get('perf');
+      if (_urlPreset && PRESETS[_urlPreset]) {
+        Object.assign(PERF, PRESETS[_urlPreset]);
+        PERF.preset = _urlPreset;
+      }
+    } catch (e) {}
+
+    // Cambio 1a: en celular no se crean luces reales de fuego, sin importar el preset.
+    if (IS_MOBILE) { PERF.limitFireLights = true; PERF.maxFireLights = 0; }
+
+    function _effectivePixelRatioCap() { return IS_MOBILE ? Math.min(1.0, PERF.pixelRatioCap) : PERF.pixelRatioCap; }
     function gaussianRandom() {
       let u = 0, v = 0;
       while (u === 0) u = Math.random();
@@ -846,9 +882,7 @@
       return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
     }
     function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
-    function sampleWalkSpeed() {
-      return clamp(WALK_SPEED_MEAN + gaussianRandom() * WALK_SPEED_SD, WALK_SPEED_MIN, WALK_SPEED_MAX);
-    }
+    function sampleWalkSpeed() { return clamp(WALK_SPEED_MEAN + gaussianRandom() * WALK_SPEED_SD, WALK_SPEED_MIN, WALK_SPEED_MAX); }
     function samplePremovementTime(conAlarma) {
       const median = conAlarma ? PREMOVEMENT_MEDIAN_ALARM : PREMOVEMENT_MEDIAN_NOALARM;
       const t = median * Math.exp(PREMOVEMENT_SIGMA * gaussianRandom());
@@ -1041,7 +1075,6 @@
 
     const btnMenu = document.getElementById('btn-menu');
     const uiOverlay = document.getElementById('ui-overlay');
-
     function toggleMenu(force) {
       const open = (typeof force === 'boolean') ? force : !document.body.classList.contains('ui-open');
       document.body.classList.toggle('ui-open', open);
@@ -1053,17 +1086,18 @@
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xd9dfe5);
-
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
     camera.position.set(35, 30, 40);
     camera.layers.enable(1);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: !IS_MOBILE, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_MOBILE ? 1.0 : 1.5));
+    const renderer = new THREE.WebGLRenderer({ antialias: PERF.antialias && !IS_MOBILE, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, _effectivePixelRatioCap()));
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.shadowMap.type = PERF.basicShadows ? THREE.BasicShadowMap : THREE.PCFShadowMap;
+    renderer.shadowMap.autoUpdate = !PERF.shadowsOncePerFrame;
     renderer.localClippingEnabled = true;
+    renderer.info.autoReset = false;
     document.body.appendChild(renderer.domElement);
 
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -1085,17 +1119,56 @@
     sun.shadow.camera.top = 40; sun.shadow.camera.bottom = -40;
     scene.add(sun);
 
-    /* ═══════════════════════════════════════════════════════════════
-       ARRAY DE MESHES — PEGAR ACÁ TU ARRAY (formato original)
-       [{ "v":3, "s":1000, "p":[...], "i":[...],
-          "color":16777215, "metalness":1, "roughness":1, "side":0 }]
-       ═══════════════════════════════════════════════════════════════ */
+    if (PERF.limitFireLights) {
+      for (let i = 0; i < PERF.maxFireLights; i++) {
+        const poolLight = new THREE.PointLight(0xff4400, 0, 8, 2);
+        poolLight.position.set(0, 0.8, 0);
+        poolLight.castShadow = false;
+        scene.add(poolLight);
+        FIRE_LIGHT_POOL.push(poolLight);
+      }
+    }
+
+    const _minimapRT = { target: null, w: 0, h: 0, lastFrame: -1 };
+    const _corteRT   = { target: null, w: 0, h: 0, lastFrame: -1 };
+    const _quadSceneMinimap = new THREE.Scene();
+    const _quadSceneCorte   = new THREE.Scene();
+    const _quadCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    const _quadGeo = new THREE.PlaneGeometry(2, 2);
+    const _quadMatMinimap = new THREE.MeshBasicMaterial({ depthTest: false, depthWrite: false });
+    const _quadMatCorte   = new THREE.MeshBasicMaterial({ depthTest: false, depthWrite: false });
+    _quadSceneMinimap.add(new THREE.Mesh(_quadGeo, _quadMatMinimap));
+    _quadSceneCorte.add(new THREE.Mesh(_quadGeo, _quadMatCorte));
+
+    function ensureRT(cache, cssW, cssH) {
+      const pr = renderer.getPixelRatio();
+      const w = Math.max(1, Math.floor(cssW * pr));
+      const h = Math.max(1, Math.floor(cssH * pr));
+      if (cache.target && cache.w === w && cache.h === h) return false;
+      if (cache.target) cache.target.dispose();
+      cache.target = new THREE.WebGLRenderTarget(w, h, {
+        minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat, type: THREE.UnsignedByteType,
+        stencilBuffer: false, depthBuffer: true
+      });
+      cache.w = w; cache.h = h;
+      return true;
+    }
+    function invalidateRTs() {
+      if (_minimapRT.target) { _minimapRT.target.dispose(); _minimapRT.target = null; }
+      _minimapRT.w = 0; _minimapRT.h = 0; _minimapRT.lastFrame = -1;
+      if (_corteRT.target) { _corteRT.target.dispose(); _corteRT.target = null; }
+      _corteRT.w = 0; _corteRT.h = 0; _corteRT.lastFrame = -1;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ARRAY DE MESHES DEL EDIFICIO — PEGAR ACÁ EL ARRAY ORIGINAL
+    // ══════════════════════════════════════════════════════════════════════
     const meshes = [{"v":3,"s":1000,"p":[18840,1000,-13537,18841,1000,-13413,20469,1000,-13559,20471,1000,-13436,20469,0,-13559,20471,0,-13436,18840,0,-13537,18841,0,-13413,14731,0,-13362,14731,1000,-13362,14731,0,-13353,14731,2830,-13353,14730,1000,-13422,14727,2830,-13591,14727,0,-13591,14730,0,-13422,3634,2150,-8931,3913,2150,-8931,3634,0,-8931,3913,0,-8931,3634,0,-9881,3913,0,-9881,3634,2150,-9881,3913,2150,-9881,3913,0,-8538,3913,2600,-8538,3913,2686,-8533,3913,2600,-8533,3913,2686,-10142,3913,0,-10142,3634,2600,-8533,3634,2686,-8533,5498,0,-8560,5498,2600,-8560,3634,2600,-8534,3634,0,-8534,301,2600,-8488,301,0,-8488,7928,1991,-15601,7928,1991,-16089,7928,724,-15601,7928,724,-16089,5489,724,-15602,5489,724,-16089,5489,1991,-15602,5489,1991,-16089,11904,1991,-15600,11904,1991,-16089,11904,724,-15600,11904,724,-16089,9465,724,-15601,9465,724,-16089,9465,1991,-15601,9465,1991,-16089,3270,1991,-15603,3270,1991,-16089,3270,724,-15603,3270,724,-16089,831,724,-15603,831,724,-16089,831,1991,-15603,831,1991,-16089,3679,0,-8284,3679,2600,-8284,304,0,-8237,304,2600,-8237,415,2600,-254,415,0,-254,168,0,0,168,2600,0,50,0,-8484,50,2600,-8484,3664,2600,-299,3664,0,-299,3918,0,-52,3918,2600,-52,3657,2600,-760,3657,0,-760,3908,0,-764,3908,2600,-764,3783,2600,-762,3783,0,-762,301,2600,-8484,50,2686,-8484,301,2686,-8484,301,2686,-15604,301,0,-15604,14585,2686,-16089,14534,2686,-15599,14585,2830,-16089,14534,2830,-15599,20450,150,-10122,20045,150,-9904,20450,0,-10122,20045,0,-9904,20045,2830,-9904,20385,150,-9822,20357,150,-9563,20385,0,-9822,20329,0,-9304,20329,2150,-9304,20357,2830,-9563,20329,2830,-9304,20793,400,-13376,20547,400,-13402,20619,400,-11713,20373,400,-11738,20547,0,-13402,20793,0,-13376,20373,0,-11738,20619,0,-11713,20619,2150,-11713,20373,2150,-11738,20371,0,-11739,20371,2830,-11739,20373,2830,-11738,20793,2150,-13376,20547,2150,-13402,20793,2830,-13376,20619,2830,-11713,20038,150,-9833,20038,0,-9833,20043,150,-9880,20043,2830,-9880,20083,2830,-9329,20080,2830,-9330,20083,2150,-9329,20080,0,-9330,20083,400,-9329,20083,0,-9329,20107,0,-9581,20107,2830,-9581,19760,0,-9592,19760,2830,-9592,19810,0,-10061,19810,2830,-10061,20216,0,-10280,20216,2830,-10280,20450,2830,-10122,19912,400,-7691,20154,400,-7665,20330,400,-9303,20155,400,-7640,20152,400,-7641,20152,0,-7641,20155,0,-7640,20330,0,-9303,19912,0,-7691,20154,2150,-7665,19912,2150,-7691,19905,0,-7692,19905,2830,-7692,19912,2830,-7691,20024,0,-6452,19799,0,-6702,13079,0,-6452,13079,0,-6702,20152,2150,-7641,20155,2150,-7640,20152,2830,-7641,20155,2830,-7640,20024,2830,-6452,12151,0,-7856,12151,2150,-7856,11902,0,-7864,11902,2830,-7864,12151,2830,-7856,11959,0,-9884,11959,2600,-9884,12003,2830,-11473,12003,0,-11473,12253,0,-11466,12253,2830,-11466,20551,0,-13437,20551,2830,-13437,20471,2830,-13436,20829,2830,-13691,20829,0,-13691,20577,0,-13687,20468,0,-13686,20577,2830,-13687,20468,2830,-13686,20796,0,-13376,20796,2830,-13376,20709,2830,-14954,20709,0,-14954,21009,0,-15418,21009,2830,-15418,17942,2830,-13649,17919,2830,-15246,17942,0,-13649,17919,0,-15246,14784,0,-15573,14784,2830,-15573,18131,0,-15223,18131,2830,-15223,14585,0,-16089,14534,0,-15599,14478,0,-13598,14478,2830,-13598,14481,2830,-13598,14481,0,-13598,14625,0,-13351,14625,2830,-13351,14381,0,-13597,14381,2830,-13597,14349,0,-12442,14349,2830,-12442,12032,0,-12508,12032,2830,-12508,12275,0,-12251,12275,2830,-12251,14592,0,-12186,14592,2830,-12186,18157,2830,-13402,18157,0,-13402,17941,0,-13649,17945,0,-13399,17941,2830,-13649,17945,2830,-13399,12239,2150,-6702,12239,2150,-6452,12239,0,-6702,12239,0,-6452,11879,0,-7042,11862,0,-6452,11879,2150,-7042,11862,2600,-6452,11879,2830,-7042,11862,2830,-6452,12128,0,-7034,12128,2830,-7034,12119,0,-6702,12119,2830,-6702,12128,2150,-7035,11902,2150,-7862,11902,2830,-7862,12128,2830,-7035,13079,2150,-6452,13079,2150,-6702,19799,2830,-6702,20389,150,-9559,20389,2830,-9559,0,2686,-16089,0,0,-16089,3634,0,-15603,3634,2686,-15603,3915,2686,-15602,3915,0,-15602,14729,0,-13486,14729,1000,-13486,17138,1000,-13396,17136,1000,-13519,17138,0,-13396,17136,0,-13519,17138,0,-13387,17138,2830,-13387,17137,2830,-13512,17137,0,-13512,17163,0,-13513,17163,2830,-13513,17165,0,-13388,17165,2830,-13388,4030,2600,-979,3930,2600,-8163,5253,2600,-8181,5750,2600,-8440,5496,2600,-8687,9909,2600,-8748,9662,2600,-8494,9920,2600,-7969,9673,2600,-7715,11844,2600,-7745,5073,2600,-993,5326,2600,-783,5285,2600,-3770,6064,2600,-3781,5811,2600,-4027,5032,2600,-4017,6028,2600,-6371,5778,2600,-6367,5775,2600,-6617,5527,2600,-6614,6025,2600,-6621,11859,2600,-6701,5756,2600,-7940,6003,2600,-8194,5753,2600,-8190,5509,2600,-7937,11841,2600,-7995,5259,2600,-7933,5280,2600,-6360,5257,2600,-7933,3723,1200,-5086,3716,0,-5586,3764,1200,-2086,3716,2100,-5586,3723,2100,-5086,3764,2100,-2086,3702,2100,-6586,3702,0,-6586,10030,2150,-9061,10081,2150,-9029,10030,0,-9061,10081,0,-9029,10414,0,-9714,10471,0,-9668,10414,2150,-9714,10471,2150,-9668,10626,0,-9921,10583,0,-10002,11961,0,-10001,9909,0,-8748,9847,0,-8749,10626,2600,-9921,9847,2600,-8749,10583,2600,-10002,11961,2600,-10001,8427,2150,-8727,8427,2150,-8477,8427,0,-8727,8427,0,-8477,9267,0,-8739,9267,0,-8489,9267,2150,-8739,9267,2150,-8489,5750,0,-8440,9662,0,-8494,9920,0,-7969,11841,0,-7995,11844,0,-7745,9673,0,-7715,3952,0,-6589,3952,2100,-6589,3966,2100,-5589,3966,0,-5589,3973,2100,-5089,4014,2100,-2089,3973,1200,-5089,4014,1200,-2089,5496,0,-8687,5253,0,-8181,3930,0,-8163,5753,0,-8190,5509,0,-7937,5259,0,-7933,5509,0,-7887,5259,0,-7883,5756,0,-7940,6003,0,-8194,6007,0,-7894,5757,0,-7890,5257,0,-7933,4030,0,-979,4180,0,-981,4183,0,-768,11859,0,-6701,6025,1861,-6621,6025,0,-6621,5278,0,-6510,5278,1861,-6510,6026,0,-6520,6026,1861,-6520,5757,1861,-7890,6007,1861,-7894,5509,1861,-7887,5259,1861,-7883,5527,1861,-6614,5775,1861,-6617,4980,2000,-992,4983,2000,-779,4180,2000,-981,4183,2000,-768,4980,0,-992,4983,0,-779,5280,0,-6360,5073,0,-993,6028,0,-6371,6064,0,-3781,5811,0,-4027,5778,0,-6367,5285,0,-3770,5032,0,-4017,5326,0,-783,18817,0,-13537,18818,0,-13412,18817,2830,-13537,18818,2830,-13412,18840,2830,-13537,18841,0,-13412,18841,2830,-13412],"i":[0,1,2,2,1,3,4,5,6,6,5,7,3,5,2,2,5,4,1,7,3,3,7,5,0,6,1,1,6,7,2,4,0,0,4,6,8,9,10,10,9,11,11,9,12,11,12,13,13,12,14,14,12,15,16,17,18,18,17,19,20,21,22,22,21,23,22,23,16,16,23,17,19,17,24,24,17,25,25,17,26,25,26,27,26,17,28,28,17,23,28,23,29,29,23,21,27,26,30,30,26,31,24,25,32,32,25,33,34,35,36,36,35,37,38,39,40,40,39,41,40,41,42,42,41,43,42,43,44,44,43,45,38,44,39,39,44,45,46,47,48,48,47,49,48,49,50,50,49,51,50,51,52,52,51,53,46,52,47,47,52,53,54,55,56,56,55,57,56,57,58,58,57,59,58,59,60,60,59,61,54,60,55,55,60,61,62,63,64,64,63,65,66,67,65,65,67,64,68,69,70,70,69,71,72,73,66,66,73,67,74,75,68,68,75,69,76,77,72,72,77,73,78,79,74,74,79,75,80,81,76,76,81,77,71,82,83,83,82,84,82,36,84,84,36,85,85,36,86,86,36,37,87,88,89,89,88,90,91,92,93,93,92,94,94,92,95,96,97,98,98,97,99,99,97,100,100,97,101,100,101,102,103,104,105,105,104,106,107,104,108,108,104,103,109,106,107,107,106,104,108,103,110,110,103,105,111,105,112,112,105,106,112,106,113,113,106,109,113,114,112,112,114,115,111,112,116,116,112,117,118,119,116,116,119,111,120,121,122,122,121,94,122,94,95,95,123,122,120,96,121,121,96,98,124,125,126,126,125,127,126,127,128,128,127,129,129,99,128,128,99,100,128,100,126,130,127,131,131,127,125,132,130,133,133,130,131,134,132,135,135,132,133,136,134,137,137,134,135,113,136,114,114,136,137,93,110,91,91,110,105,91,105,111,119,138,111,111,138,91,93,109,110,110,109,107,110,107,108,94,136,93,93,136,113,93,113,109,136,94,134,134,94,121,134,121,132,132,121,130,130,121,98,130,98,99,99,129,130,130,129,127,139,140,128,128,140,141,141,140,142,142,140,143,143,144,142,142,144,145,129,128,146,146,128,141,147,139,129,129,139,128,146,141,145,145,141,142,148,140,149,149,140,139,149,139,150,150,139,147,150,151,149,149,151,152,129,146,147,147,146,145,147,145,144,153,154,144,144,154,150,144,150,147,153,155,154,154,155,156,157,148,158,158,148,100,100,148,126,126,148,149,152,124,149,149,124,126,157,158,159,159,158,160,102,160,100,100,160,158,140,148,143,143,148,157,143,157,153,153,157,161,161,157,159,153,144,143,162,163,164,164,163,165,165,163,166,167,164,168,168,164,165,168,165,169,169,170,168,168,170,167,162,171,163,163,171,172,163,172,166,5,173,3,3,173,174,3,174,175,178,179,180,180,179,181,5,3,179,179,3,181,181,3,175,182,177,183,183,177,176,180,184,178,178,184,185,177,186,176,176,186,187,188,189,190,190,189,191,191,189,192,192,189,193,185,184,194,194,184,195,89,187,87,87,187,186,87,186,196,193,13,192,192,13,14,197,198,88,88,198,199,88,199,90,200,199,201,201,199,198,202,10,203,203,10,11,201,204,200,200,204,205,204,206,205,205,206,207,206,208,207,207,208,209,208,170,209,209,170,169,171,210,172,172,210,211,210,212,211,211,212,213,212,202,213,213,202,203,195,214,194,194,214,215,115,174,117,117,174,173,117,173,104,104,173,107,117,112,115,117,104,116,116,104,182,116,182,183,104,107,182,183,118,116,216,217,218,218,217,219,190,216,188,188,216,218,217,215,219,219,215,214,220,221,222,222,221,223,224,225,226,226,225,227,226,227,228,228,227,229,224,226,230,230,226,231,231,226,228,232,230,233,233,230,231,230,232,224,224,232,225,225,232,223,223,232,222,234,226,163,163,226,235,166,236,237,237,236,228,228,226,237,237,226,234,236,235,228,228,235,226,166,163,236,236,163,235,237,234,166,166,234,163,238,227,221,221,227,225,221,225,223,155,153,238,238,153,161,238,161,229,229,227,238,221,220,238,238,220,239,238,239,155,155,239,156,240,239,233,233,239,220,233,220,232,232,220,222,240,154,239,239,154,156,150,154,151,151,154,240,122,92,96,96,92,91,96,91,241,241,97,96,96,120,122,123,138,95,95,138,137,95,137,135,95,135,123,123,135,133,123,133,131,138,119,137,137,119,115,137,115,114,119,118,115,115,118,174,174,118,176,174,176,180,180,176,184,184,176,187,184,187,195,195,187,189,195,189,188,118,183,176,187,89,189,189,89,193,193,89,90,193,90,200,200,90,199,205,203,200,200,203,13,200,13,193,205,207,203,203,207,213,213,207,211,211,207,209,211,209,169,211,169,172,172,169,165,172,165,166,203,11,13,218,219,188,188,219,214,188,214,195,180,181,174,174,181,175,125,124,131,131,124,102,131,102,101,124,152,102,102,152,159,102,159,160,151,240,152,152,240,159,159,240,161,161,240,233,161,233,229,229,233,228,228,233,231,242,138,101,101,138,123,101,123,131,242,241,138,138,241,91,101,97,242,242,97,241,95,92,123,123,92,122,83,243,71,71,243,244,71,244,70,60,85,58,58,85,86,58,86,245,85,60,246,246,60,54,246,54,56,246,56,245,245,56,58,18,35,16,16,35,34,16,34,22,22,34,31,22,31,246,34,30,31,246,245,22,22,245,20,247,28,248,248,28,29,44,247,42,42,247,248,42,248,40,40,248,50,40,50,38,38,50,52,38,52,247,247,52,88,88,52,46,88,46,48,44,38,247,88,48,197,197,48,50,197,50,248,43,57,45,45,57,55,45,55,243,243,55,61,243,61,59,57,43,244,244,43,41,244,41,196,196,41,51,196,51,49,51,41,53,53,41,39,53,39,87,87,39,243,243,39,45,196,49,87,87,49,47,87,47,53,243,59,244,244,59,57,26,28,31,31,28,246,246,28,247,246,247,243,243,247,87,87,247,88,246,243,85,85,243,83,85,83,84,15,12,249,249,12,250,9,251,12,12,251,252,12,252,250,251,253,252,252,253,254,9,8,251,251,8,253,252,254,250,250,254,249,253,255,251,251,255,256,251,256,257,257,258,251,251,258,253,259,258,260,260,258,257,261,259,262,262,259,260,255,261,256,256,261,262,255,253,261,261,253,259,259,253,258,262,260,256,256,260,257,80,263,63,63,263,264,63,264,27,27,264,265,27,265,25,25,265,33,33,265,266,33,266,267,267,266,268,268,266,269,268,269,270,270,269,271,270,271,272,76,72,80,80,72,79,80,79,263,263,79,273,273,79,274,273,274,275,79,72,75,75,72,66,75,66,69,69,66,65,69,65,71,71,65,82,82,65,30,82,30,36,36,30,34,65,63,30,30,63,27,276,277,275,275,277,278,275,278,273,276,279,277,277,279,280,280,279,281,280,281,282,281,279,283,283,279,227,283,227,284,281,283,285,285,283,286,285,286,287,266,265,287,287,265,288,287,288,285,272,289,270,288,290,282,282,290,291,282,291,280,292,290,265,265,290,288,293,294,295,295,294,81,295,81,80,294,293,296,296,293,297,296,297,63,63,297,80,80,297,298,80,298,295,296,63,299,299,63,62,299,62,300,301,302,303,303,302,304,305,306,307,307,306,308,301,307,302,302,307,308,306,305,309,309,305,310,309,310,311,311,167,309,304,312,303,303,312,313,304,302,312,312,302,268,268,302,314,314,302,308,314,308,309,309,308,306,313,312,315,315,312,268,303,313,301,301,313,315,301,315,316,301,316,307,307,316,310,307,310,305,311,310,317,317,310,316,167,311,168,168,311,317,309,167,314,314,167,168,268,314,315,315,314,316,316,314,317,317,314,168,318,319,320,320,319,321,322,323,324,324,323,325,324,325,318,318,325,319,321,319,326,326,319,266,266,319,269,269,319,325,269,325,327,327,325,323,323,322,327,327,322,312,327,312,328,329,330,328,328,330,331,328,331,327,332,333,300,300,333,299,333,334,299,299,334,296,334,335,296,296,335,294,336,337,297,297,337,298,338,336,293,293,336,297,339,338,295,295,338,293,337,339,298,298,339,295,340,326,32,32,326,341,32,341,24,24,341,342,24,342,62,62,342,300,300,342,332,340,320,326,326,320,321,326,343,341,341,343,344,341,344,345,345,344,346,345,346,347,344,343,348,348,343,349,348,349,350,350,351,348,345,352,341,24,62,35,35,62,64,35,64,37,37,64,70,37,70,86,86,70,244,86,244,245,245,244,248,245,248,29,70,64,68,68,64,67,68,67,73,77,81,73,73,81,78,73,78,74,78,81,353,353,81,294,353,294,335,354,355,353,353,355,78,74,68,73,244,196,248,248,196,197,197,196,192,197,192,198,198,192,201,201,192,14,201,14,15,192,196,191,191,196,186,191,186,194,194,186,185,185,186,177,185,177,178,178,177,173,178,173,179,179,173,5,177,182,173,182,107,173,191,194,190,190,194,215,190,215,217,217,216,190,249,254,15,15,254,253,15,253,8,10,202,8,8,202,15,212,206,202,202,206,204,202,204,201,212,210,206,206,210,208,208,210,170,170,210,171,170,171,167,167,171,162,167,162,164,21,20,29,29,20,245,35,18,24,24,18,19,201,15,202,329,289,330,330,289,272,356,284,225,225,284,227,283,284,357,357,284,356,357,356,358,272,271,330,330,271,331,359,360,361,361,360,362,351,350,363,363,350,364,365,366,346,346,366,347,361,362,358,358,362,357,365,367,366,366,367,360,360,367,362,362,367,368,362,368,357,357,368,363,357,363,364,369,370,371,371,370,372,371,372,354,354,372,355,369,373,370,370,373,374,347,366,345,345,366,290,290,366,360,290,360,291,291,360,375,375,360,359,373,369,376,376,369,273,273,369,371,273,371,263,263,371,353,353,371,354,358,356,361,361,356,225,361,225,377,378,379,377,377,379,380,377,380,361,361,380,359,359,380,375,378,381,379,379,381,382,382,381,376,376,381,383,376,383,374,374,373,376,78,372,79,79,372,370,79,370,274,274,370,383,383,370,374,78,355,372,329,328,289,289,328,270,368,367,281,281,367,282,227,279,225,225,279,377,343,326,287,287,326,266,33,267,32,32,267,340,271,269,331,331,269,327,346,344,365,365,344,288,365,288,282,282,367,365,320,340,318,318,340,267,318,267,268,318,268,324,324,268,312,324,312,322,328,312,270,270,312,268,280,291,380,380,291,375,380,379,280,280,379,277,279,276,377,377,276,378,290,292,345,345,292,352,344,348,288,288,348,285,278,277,382,382,277,379,273,278,376,376,278,382,332,342,333,333,342,264,333,264,334,334,264,336,334,336,338,264,263,336,336,263,337,337,263,339,339,263,353,339,353,335,339,335,338,338,335,334,265,264,341,341,264,342,292,265,352,352,265,341,368,281,363,363,281,285,363,285,348,348,351,363,350,349,364,364,349,286,364,286,283,283,357,364,381,378,275,275,378,276,383,381,274,274,381,275,287,286,343,343,286,349,384,385,386,386,385,387,6,384,0,0,384,386,0,386,388,6,0,389,389,0,390,390,0,388,385,389,387,387,389,390,389,385,6,6,385,384,390,388,387,387,388,386],"color":16777215,"metalness":1,"roughness":1,"side":0}];
 
 
     const model = new THREE.Group();
     model.name = 'Laboratorio';
-
     for (const m of meshes) {
       const geom = new THREE.BufferGeometry();
       if (m.p && m.i) {
@@ -1106,15 +1179,13 @@
         geom.setIndex(m.i);
       }
       const mat = new THREE.MeshStandardMaterial({
-        color: m.color ?? 0xe8e8e8,
-        roughness: m.roughness ?? 0.9,
+        color: m.color ?? 0xe8e8e8, roughness: m.roughness ?? 0.9,
         metalness: 0.5, side: THREE.DoubleSide, flatShading: true
       });
       const mesh = new THREE.Mesh(geom, mat);
       mesh.castShadow = true; mesh.receiveShadow = true;
       model.add(mesh);
     }
-
     scene.add(model);
     model.updateMatrixWorld(true);
     const modelMesh = model.children[0];
@@ -1128,6 +1199,17 @@
     if (emptyModel) {
       console.warn('[Incendio] Array de meshes vacío. Usando dimensiones de fallback.');
       size.set(20, 4, 20); center.set(10, 2, -8); maxDim = 20;
+    }
+
+    if (PERF.shadowFrustumAuto) {
+      const _sceneR     = Math.sqrt(size.x*size.x + size.y*size.y + size.z*size.z) / 2;
+      const _centerDist = Math.sqrt(center.x*center.x + center.y*center.y + center.z*center.z);
+      const _extent     = _centerDist + _sceneR + 2;
+      sun.shadow.camera.left   = -_extent;
+      sun.shadow.camera.right  =  _extent;
+      sun.shadow.camera.top    =  _extent;
+      sun.shadow.camera.bottom = -_extent;
+      sun.shadow.camera.updateProjectionMatrix();
     }
 
     camera.position.copy(center).add(new THREE.Vector3(maxDim*1.3, maxDim*1.4, maxDim*1.3));
@@ -1146,7 +1228,6 @@
     floorGeo.translate(floorCenterX, 0, floorCenterZ);
     const vertexCount = floorGeo.attributes.position.count;
     floorGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(vertexCount * 3), 3));
-
     const floorMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0.0 });
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.receiveShadow = true;
@@ -1184,9 +1265,7 @@
     const cutCamera = new THREE.PerspectiveCamera(48, 280 / 180, 0.5, 120);
     cutCamera.layers.enable(0);
     cutCamera.layers.enable(1);
-
     const cutPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 15.20);
-
     const CUT_VIEWS = [
       { name: 'Vista Trasera',  camPos: [10.5, 2.2, -29.5], camTarget: [10.5, 1.4, -13.5], planeNormal: [0, 0, 1],  planeConst: 15.20 },
       { name: 'Vista Frente',   camPos: [8.5,  2.2,  12.5], camTarget: [8.5,  1.4,  -3.5], planeNormal: [0, 0, -1], planeConst: -0.30 },
@@ -1194,14 +1273,12 @@
       { name: 'Vista Derecha',  camPos: [33.2, 2.2, -9.4],  camTarget: [17.2, 1.4, -11.1], planeNormal: [-0.994, 0, -0.109], planeConst: 18.25 }
     ];
     let currentCutViewIdx = 0;
-
     const cutModelMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false, side: THREE.DoubleSide });
     const cutEdgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 3, transparent: true, opacity: 0.9, depthTest: true, depthWrite: false });
-
+    cutEdgeMaterial.visible = false;
     const cutEdgesGroup = new THREE.Group();
     cutEdgesGroup.name = 'CutEdges';
     scene.add(cutEdgesGroup);
-
     const cutEdgeObjects = [];
     model.traverse((child) => {
       if (!child.isMesh || !child.geometry) return;
@@ -1223,7 +1300,6 @@
       const el = document.getElementById('corte-titulo');
       if (el) el.textContent = v.name;
     }
-
     function updateCutCameraAspect() {
       const marcoCorte = document.getElementById('corte-marco');
       if (marcoCorte) {
@@ -1234,7 +1310,6 @@
         }
       }
     }
-
     const corteTituloEl = document.getElementById('corte-titulo');
     if (corteTituloEl) {
       corteTituloEl.addEventListener('click', (e) => {
@@ -1242,13 +1317,11 @@
         applyCutView((currentCutViewIdx + 1) % CUT_VIEWS.length);
       });
     }
-
     const btnCorteScale = document.getElementById('btn-corte-scale');
     const btnCorteMax = document.getElementById('btn-corte-max');
     const iconCorteMax = document.getElementById('icon-corte-max');
     const iconCorteRestore = document.getElementById('icon-corte-restore');
     let corteIs2X = false;
-
     function setCorteScale(is2X) {
       corteIs2X = is2X;
       const marco = document.getElementById('corte-marco');
@@ -1261,7 +1334,6 @@
       setTimeout(updateCutCameraAspect, 50);
       setTimeout(updateCutCameraAspect, 240);
     }
-
     if (btnCorteScale) {
       btnCorteScale.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1270,7 +1342,6 @@
         setCorteScale(!corteIs2X);
       });
     }
-
     function toggleMaximizeCorte() {
       const marco = document.getElementById('corte-marco');
       if (!marco) return;
@@ -1285,11 +1356,9 @@
       setTimeout(updateCutCameraAspect, 50);
       setTimeout(updateCutCameraAspect, 250);
     }
-
     if (btnCorteMax) {
       btnCorteMax.addEventListener('click', (e) => { e.stopPropagation(); toggleMaximizeCorte(); });
     }
-
     const btnUiMinimize = document.getElementById('btn-ui-minimize');
     const btnUiRestore = document.getElementById('btn-ui-restore');
     function setDesktopMenuMinimized(minimized) { document.body.classList.toggle('ui-desktop-minimized', minimized); }
@@ -1300,7 +1369,6 @@
     if (btnUiRestore) btnUiRestore.addEventListener('click', (e) => {
       e.stopPropagation(); setDesktopMenuMinimized(false);
     });
-
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         const marco = document.getElementById('corte-marco');
@@ -1310,19 +1378,12 @@
 
     const povCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 200);
     povCamera.layers.enable(1);
-    const _povRaycaster = new THREE.Raycaster();
-
     let povPerson = null;
     let superPovMode = false;
-    let povThirdPerson = false;
-    let povYaw = 0;
-    let povPitch = 0;
-    let povDragging = false;
-    let povDragPointerId = -1;
-    let povDragStartX = 0;
-    let povDragStartY = 0;
+    let povYaw = 0, povPitch = 0;
+    let povDragging = false, povDragPointerId = -1;
+    let povDragStartX = 0, povDragStartY = 0;
     const povKeys = { up: false, down: false, left: false, right: false };
-
     const povHud = document.getElementById('pov-hud');
     const povNameEl = document.getElementById('pov-name');
     const povStateEl = document.getElementById('pov-state');
@@ -1357,7 +1418,6 @@
       povHud.style.left = ''; povHud.style.right = '';
       povHud.style.transform = ''; povHud.style.maxWidth = '';
     }
-
     function resetClockPosition() {
       const clockEl = document.getElementById('reloj-simulacion');
       if (!clockEl) return;
@@ -1366,13 +1426,12 @@
       povHud.style.left = ''; povHud.style.right = '';
       povHud.style.transform = ''; povHud.style.maxWidth = '';
     }
-
     function resetPovLook() { povYaw = 0; povPitch = 0; povDragging = false; povDragPointerId = -1; }
 
     function enterPov(person) {
+      if (IS_MOBILE) return;
       if (!person || person.isDead || povPerson) return;
       povPerson = person;
-      povThirdPerson = false;
       povYaw = person.mesh.rotation.y;
       povPitch = 0;
       povDragging = false;
@@ -1395,7 +1454,6 @@
       document.body.classList.add('pov-active');
       requestAnimationFrame(() => requestAnimationFrame(repositionClockForPov));
     }
-
     function toggleSuperPov() {
       if (!povPerson) return;
       superPovMode = !superPovMode;
@@ -1404,7 +1462,6 @@
       if (!superPovMode) povKeys.up = povKeys.down = povKeys.left = povKeys.right = false;
       if (!IS_MOBILE) requestAnimationFrame(repositionClockForPov);
     }
-
     function exitPov() {
       if (!povPerson) return;
       const p = povPerson;
@@ -1417,33 +1474,14 @@
             if (p.povOriginalWorkstation) p.povOriginalWorkstation.occupied = false;
             refreshDeathCount();
           }
-        } else if (!hasActiveFires()) {
-          const startPos = p.povStartPos;
-          const dist = startPos ? Math.hypot(p.x - startPos.x, p.z - startPos.z) : Infinity;
-          if (startPos && dist < POV_RETURN_MAX_DIST) {
-            p.x = startPos.x; p.z = startPos.z;
-            p.mesh.position.set(p.x, 0, p.z);
-            if (p.povOriginalState === 'sitting' && p.povOriginalWorkstation) {
-              p.state = 'sitting';
-              p.workstation = p.povOriginalWorkstation;
-              p.workstation.occupied = true;
-              p.mesh.position.y = 0.25;
-            } else {
-              p.state = 'standing';
-              p.mesh.position.y = 0;
-            }
-          } else {
-            p.state = 'standing';
-            p.mesh.position.y = 0;
-          }
         } else {
-          p.state = 'wandering';
-          p.wanderAngle = Math.random() * Math.PI * 2;
-          p.wanderTimer = 1.0 + Math.random() * 2.0;
-          p.mesh.position.y = 0;
+          p.state = 'standing';
+          p.workstation = null;
+          p.mesh.position.set(p.x, 0, p.z);
+          if (p.povOriginalWorkstation) p.povOriginalWorkstation.occupied = false;
         }
       }
-      povPerson = null; superPovMode = false; povThirdPerson = false;
+      povPerson = null; superPovMode = false;
       resetPovLook();
       povKeys.up = povKeys.down = povKeys.left = povKeys.right = false;
       povHud.style.display = 'none';
@@ -1453,7 +1491,6 @@
       document.body.classList.remove('pov-active');
       resetClockPosition();
     }
-
     function updatePovCamera() {
       if (!povPerson) return;
       if (povPerson.isDead || !people.includes(povPerson)) { exitPov(); return; }
@@ -1470,28 +1507,13 @@
       const lookZ = Math.cos(yaw) * cosPitch;
       const lookY = Math.sin(pitch);
       const eyeX = p.x, eyeY = 1.4, eyeZ = p.z;
-      if (povThirdPerson) {
-        let camDist = 3.5;
-        const backX = -lookX, backY = -lookY + 0.25, backZ = -lookZ;
-        const backLen = Math.hypot(backX, backY, backZ) || 1;
-        const rayDir = new THREE.Vector3(backX / backLen, backY / backLen, backZ / backLen);
-        _povRaycaster.set(new THREE.Vector3(eyeX, eyeY, eyeZ), rayDir);
-        _povRaycaster.far = camDist;
-        const hits = _povRaycaster.intersectObject(model, true);
-        if (hits.length > 0) camDist = Math.max(0.6, hits[0].distance - 0.2);
-        povCamera.position.set(eyeX + backX * (camDist / backLen), eyeY + backY * (camDist / backLen), eyeZ + backZ * (camDist / backLen));
-        povCamera.lookAt(eyeX + lookX * 2, eyeY + lookY * 2, eyeZ + lookZ * 2);
-      } else {
-        povCamera.position.set(eyeX - lookX * 0.08, eyeY, eyeZ - lookZ * 0.08);
-        povCamera.lookAt(eyeX + lookX * 3, eyeY + lookY * 3, eyeZ + lookZ * 3);
-      }
+      povCamera.position.set(eyeX - lookX * 0.08, eyeY, eyeZ - lookZ * 0.08);
+      povCamera.lookAt(eyeX + lookX * 3, eyeY + lookY * 3, eyeZ + lookZ * 3);
       const stateLabel = { 'sitting': 'Sentado/a', 'wandering': 'Deambulando', 'evacuating': 'Evacuando', 'dead': 'Fallecido/a', 'superpov': 'Manual', 'standing': 'De pie' }[p.state] || p.state;
       const healthPct = Math.round((1 - p.fed) * 100);
-      const camMode = povThirdPerson ? '3ª' : '1ª';
-      const text = ` · ${stateLabel} · Salud ${healthPct}% · Vista ${camMode}`;
+      const text = ` · ${stateLabel} · Salud ${healthPct}%`;
       if (povStateEl.textContent !== text) povStateEl.textContent = text;
     }
-
     function handleSuperPovMovement(p, delta, time) {
       if (p.state !== 'superpov') {
         p.state = 'superpov';
@@ -1535,7 +1557,6 @@
       if (movedX || movedZ) animatePersonWalk(p, time, 1.0);
       else animatePersonIdle(p);
     }
-
     povSuperBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleSuperPov(); });
     povExitBtn.addEventListener('click', (e) => { e.stopPropagation(); exitPov(); });
 
@@ -1560,7 +1581,6 @@
         case 'ArrowRight': case 'd': case 'D': povKeys.right = false; break;
       }
     });
-
     window.addEventListener('pointerdown', (e) => {
       if (!povPerson) return;
       if (e.button === 2) return;
@@ -1587,14 +1607,12 @@
     window.addEventListener('contextmenu', (e) => {
       if (!povPerson) return;
       e.preventDefault();
-      povThirdPerson = !povThirdPerson;
     });
 
     const EXITS = [
       { x: 4.62, z: 0 },
       { x: 12.5, z: -5.5 }
     ];
-
     function createExitSign(x, z, rotationY = 0) {
       const canvas = document.createElement('canvas');
       canvas.width = 512; canvas.height = 256;
@@ -1611,6 +1629,7 @@
       const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 0.6), mat);
       sign.position.set(x, 2.2, z); sign.rotation.y = rotationY;
       sign.castShadow = false; sign.receiveShadow = false; sign.layers.set(0);
+      sign.userData.isExitSign = true;
       scene.add(sign);
       return sign;
     }
@@ -1631,7 +1650,6 @@
       { minX: 3.6,  maxX: 14.4, minZ: -15.6, maxZ: -12.5, roomIdx: 4 },
       { minX: 8.4,  maxX: 9.9,  minZ: -9.0,  maxZ: -6.6, roomIdx: 4 }
     ];
-
     function isInsideRoomGeometry(x, z) { return INNER_ROOMS.some(r => x >= r.minX && x <= r.maxX && z >= r.minZ && z <= r.maxZ); }
     function getRoomStatusAt(x, z) {
       for (let i = 0; i < INNER_ROOMS.length; i++) {
@@ -1650,7 +1668,6 @@
 
     let insideGrid = null;
     let walkableList = [];
-
     function buildInsideGrid() {
       insideGrid = new Uint8Array(gridStepsX * gridStepsZ);
       walkableList = [];
@@ -1679,7 +1696,6 @@
         }
       }
     }
-
     function buildCollisionMap() {
       gridMinX = bbox.min.x - gridMargin;
       gridMinZ = bbox.min.z - gridMargin;
@@ -1759,8 +1775,7 @@
       const handleMat = new THREE.MeshStandardMaterial({ color: 0x9ba3aa, roughness: 0.3, metalness: 0.9 });
       const handleBar = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.22, 0.03), handleMat);
       handleBar.position.set(W / 2 - 0.06, H / 2, D / 2 + 0.02); group.add(handleBar);
-      group.position.set(x, 0, z);
-      group.rotation.y = rotationY;
+      group.position.set(x, 0, z); group.rotation.y = rotationY;
       scene.add(group);
       const pad = 0.05;
       const hw = W / 2 + pad, hd = D / 2 + pad;
@@ -1775,7 +1790,6 @@
       return rack;
     }
     createServerRack(11.11, -8.40, Math.PI);
-
     walkableList = walkableList.filter(pt => isWalkable(pt.x, pt.z));
 
     function isWalkable(x, z) {
@@ -2026,7 +2040,6 @@
       const frameMaterial = new THREE.MeshStandardMaterial({ color: 0x222226, roughness: 0.5, metalness: 0.7 });
       const sashFrameMaterial = new THREE.MeshStandardMaterial({ color: 0x2e3238, roughness: 0.45, metalness: 0.75 });
       const crackedMaterial = new THREE.MeshStandardMaterial({ color: 0x88ccff, roughness: 0.2, metalness: 0.3, transparent: true, opacity: 0.55, side: THREE.DoubleSide });
-
       clusters.forEach((cl, index) => {
         const dx = cl.maxX - cl.minX, dz = cl.maxZ - cl.minZ;
         if (Math.max(dx, dz) < 0.5) return;
@@ -2077,16 +2090,15 @@
         const winGroup = new THREE.Group();
         const borderThick = 0.04;
         const frameDepth = Math.max(0.08, wallThick * 0.5);
+        const cr = (w,h,d,px,py,pz) => { const bar = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), frameMaterial); bar.position.set(px,py,pz); bar.castShadow=false; bar.receiveShadow=true; winGroup.add(bar); };
         if (isDiagonal) {
           winGroup.position.set(centerX, centerY, centerZ);
           winGroup.rotation.y = rotY;
-          const cr = (w,h,d,px,py,pz) => { const bar = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), frameMaterial); bar.position.set(px,py,pz); bar.castShadow=true; bar.receiveShadow=true; winGroup.add(bar); };
           cr(width, borderThick, frameDepth, 0, -height/2 + borderThick/2, 0);
           cr(width, borderThick, frameDepth, 0, height/2 - borderThick/2, 0);
           cr(borderThick, height - borderThick*2, frameDepth, -width/2 + borderThick/2, 0, 0);
           cr(borderThick, height - borderThick*2, frameDepth, width/2 - borderThick/2, 0, 0);
         } else {
-          const cr = (w,h,d,px,py,pz) => { const bar = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), frameMaterial); bar.position.set(px,py,pz); bar.castShadow=true; bar.receiveShadow=true; winGroup.add(bar); };
           if (axis === 'X') {
             cr(width, borderThick, frameDepth, centerX, cl.y + borderThick/2, centerZ);
             cr(width, borderThick, frameDepth, centerX, headerY - borderThick/2, centerZ);
@@ -2111,7 +2123,7 @@
           gMesh.castShadow = false; gMesh.receiveShadow = true;
           sGroup.add(gMesh);
           const fd = Math.max(0.035, wallThick * 0.3);
-          function addSBar(w,h,d,px,py,pz){ const b = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), sashFrameMaterial); b.position.set(px,py,pz); b.castShadow=true; b.receiveShadow=true; sGroup.add(b); }
+          function addSBar(w,h,d,px,py,pz){ const b = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), sashFrameMaterial); b.position.set(px,py,pz); b.castShadow=false; b.receiveShadow=true; sGroup.add(b); }
           if (isDiagonal || axis === 'X') {
             addSBar(sashW, sashFrameThick, fd, 0, sashH/2 - sashFrameThick/2, 0);
             addSBar(sashW, sashFrameThick, fd, 0, -sashH/2 + sashFrameThick/2, 0);
@@ -2196,7 +2208,6 @@
         glassShards.push({ mesh: shard, velocity: vel, rotSpeed: rot, life: 4.5 + Math.random() * 2.0, maxLife: 6.0 });
       }
     }
-
     function repairAllWindows() {
       windowsList.forEach(w => {
         w.isBroken = false; w.targetOpenRatio = 0.0; w.currentOpenRatio = 0.0;
@@ -2210,7 +2221,6 @@
       glassShards.forEach(s => scene.remove(s.mesh));
       glassShards.length = 0;
     }
-
     function updateWindows() {
       for (let i = 0; i < windowsList.length; i++) {
         const w = windowsList[i];
@@ -2222,7 +2232,6 @@
         else w.slidingPaneGroup.position.z = w.baseSlidingPos - off;
       }
     }
-
     function updateGlassShards(delta) {
       if (glassShards.length === 0) return;
       const step = Math.min(delta, 0.05);
@@ -2244,7 +2253,6 @@
         if (s.life < 1.5) s.mesh.material.opacity = (s.life / 1.5) * 0.7;
       }
     }
-
     detectAndBuildWindows();
 
     function buildInvisibleWindowBarriers() {
@@ -2319,7 +2327,7 @@
       const frameDepth = Math.max(0.10, cfg.wallThick * 0.6);
       function addFrameBar(w, h, d, px, py, pz) {
         const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat);
-        bar.position.set(px, py, pz); bar.castShadow = true; bar.receiveShadow = true;
+        bar.position.set(px, py, pz); bar.castShadow = false; bar.receiveShadow = true;
         frameGroup.add(bar);
       }
       if (cfg.isDiagonal) {
@@ -2432,13 +2440,11 @@
       doorsList.push(doorObj);
       return doorObj;
     }
-
     function detectAndBuildDoors() {
       for (const cfg of DOORS_CONFIG) {
         if (!isPointExcludedFromDoors(cfg.centerX, cfg.centerZ)) createDoor(cfg);
       }
     }
-
     function updateDoors(delta) {
       if (doorsList.length === 0) return;
       for (let i = 0; i < doorsList.length; i++) {
@@ -2461,45 +2467,145 @@
 
     const workstations = [];
     function createWorkstation(x, z, rotationY = 0, roomId = 'rojo') {
-      const group = new THREE.Group();
-      const deskMat = new THREE.MeshStandardMaterial({ color: 0x2b303a, roughness: 0.5, metalness: 0.2 });
-      const desk = new THREE.Mesh(new THREE.BoxGeometry(0.70, 0.05, 0.48), deskMat);
-      desk.position.set(0, 0.7, 0); desk.castShadow = true; desk.receiveShadow = true;
-      group.add(desk);
-      const legMat = new THREE.MeshStandardMaterial({ color: 0x111115, metalness: 0.8, roughness: 0.3 });
-      const legGeo = new THREE.BoxGeometry(0.05, 0.7, 0.05);
-      [[-0.30,-0.20],[0.30,-0.20],[-0.30,0.20],[0.30,0.20]].forEach(([lx, lz]) => {
-        const leg = new THREE.Mesh(legGeo, legMat);
-        leg.position.set(lx, 0.35, lz); leg.castShadow = true;
-        group.add(leg);
-      });
-      const chairMat = new THREE.MeshStandardMaterial({ color: 0x1e2229, roughness: 0.8 });
-      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.05, 0.36), chairMat);
-      seat.position.set(0, 0.45, 0.35); seat.castShadow = true; group.add(seat);
-      const back = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.35, 0.05), chairMat);
-      back.position.set(0, 0.65, 0.51); back.castShadow = true; group.add(back);
-      const baseLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.42, 8), legMat);
-      baseLeg.position.set(0, 0.21, 0.35); group.add(baseLeg);
-      const monMat = new THREE.MeshStandardMaterial({ color: 0x0f1115, roughness: 0.4 });
-      const monBase = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.02, 0.15), monMat);
-      monBase.position.set(0, 0.74, -0.10); group.add(monBase);
-      const monStand = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.03), monMat);
-      monStand.position.set(0, 0.83, -0.12); group.add(monStand);
-      const screenMat = new THREE.MeshStandardMaterial({ color: 0x00d2ff, emissive: 0x0055aa, emissiveIntensity: 0.7, roughness: 0.2 });
-      const screen = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.28, 0.025), screenMat);
-      screen.position.set(0, 0.94, -0.11); screen.castShadow = true; group.add(screen);
-      const kbMat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.6 });
-      const kb = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.015, 0.12), kbMat);
-      kb.position.set(0, 0.73, 0.08); group.add(kb);
-      group.position.set(x, 0, z);
-      group.rotation.y = rotationY;
-      scene.add(group);
       const seatLocalPos = new THREE.Vector3(0, 0, 0.35);
       seatLocalPos.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotationY);
       const seatWorldPos = new THREE.Vector3(x + seatLocalPos.x, 0, z + seatLocalPos.z);
+      let group = null, screenMat = null;
+      if (!PERF.mergeWorkstations) {
+        group = new THREE.Group();
+        const deskMat = new THREE.MeshStandardMaterial({ color: 0x2b303a, roughness: 0.5, metalness: 0.2 });
+        const desk = new THREE.Mesh(new THREE.BoxGeometry(0.70, 0.05, 0.48), deskMat);
+        desk.position.set(0, 0.7, 0); desk.castShadow = true; desk.receiveShadow = true; group.add(desk);
+        const legMat = new THREE.MeshStandardMaterial({ color: 0x111115, metalness: 0.8, roughness: 0.3 });
+        const legGeo = new THREE.BoxGeometry(0.05, 0.7, 0.05);
+        [[-0.30,-0.20],[0.30,-0.20],[-0.30,0.20],[0.30,0.20]].forEach(([lx, lz]) => {
+          const leg = new THREE.Mesh(legGeo, legMat);
+          leg.position.set(lx, 0.35, lz); leg.castShadow = false; group.add(leg);
+        });
+        const chairMat = new THREE.MeshStandardMaterial({ color: 0x1e2229, roughness: 0.8 });
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.05, 0.36), chairMat);
+        seat.position.set(0, 0.45, 0.35); seat.castShadow = false; group.add(seat);
+        const back = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.35, 0.05), chairMat);
+        back.position.set(0, 0.65, 0.51); back.castShadow = false; group.add(back);
+        const baseLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.42, 8), legMat);
+        baseLeg.position.set(0, 0.21, 0.35); group.add(baseLeg);
+        const monMat = new THREE.MeshStandardMaterial({ color: 0x0f1115, roughness: 0.4 });
+        const monBase = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.02, 0.15), monMat);
+        monBase.position.set(0, 0.74, -0.10); group.add(monBase);
+        const monStand = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.03), monMat);
+        monStand.position.set(0, 0.83, -0.12); group.add(monStand);
+        screenMat = new THREE.MeshStandardMaterial({ color: 0x00d2ff, emissive: 0x0055aa, emissiveIntensity: 0.7, roughness: 0.2 });
+        const screen = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.28, 0.025), screenMat);
+        screen.position.set(0, 0.94, -0.11); screen.castShadow = false; group.add(screen);
+        const kbMat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.6 });
+        const kb = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.015, 0.12), kbMat);
+        kb.position.set(0, 0.73, 0.08); group.add(kb);
+        group.position.set(x, 0, z);
+        group.rotation.y = rotationY;
+        scene.add(group);
+      }
       const ws = { group, screenMat, x, z, rotationY, seatPos: seatWorldPos, occupied: false, roomId, onFire: false, pendingIgnition: false };
       workstations.push(ws);
       return ws;
+    }
+
+    function mergeGeoms(geometries) {
+      let totalVerts = 0, totalIndices = 0, hasIndex = true, hasUV = true, hasNormal = true;
+      for (const g of geometries) {
+        totalVerts += g.attributes.position.count;
+        if (g.index) totalIndices += g.index.count; else hasIndex = false;
+        if (!g.attributes.uv) hasUV = false;
+        if (!g.attributes.normal) hasNormal = false;
+      }
+      const positions = new Float32Array(totalVerts * 3);
+      const normals = hasNormal ? new Float32Array(totalVerts * 3) : null;
+      const uvs = hasUV ? new Float32Array(totalVerts * 2) : null;
+      const indices = hasIndex ? new Uint32Array(totalIndices) : null;
+      let vertOffset = 0, idxOffset = 0;
+      for (const g of geometries) {
+        positions.set(g.attributes.position.array, vertOffset * 3);
+        if (normals && g.attributes.normal) normals.set(g.attributes.normal.array, vertOffset * 3);
+        if (uvs && g.attributes.uv) uvs.set(g.attributes.uv.array, vertOffset * 2);
+        if (indices && g.index) {
+          const idx = g.index.array;
+          for (let i = 0; i < idx.length; i++) indices[idxOffset + i] = idx[i] + vertOffset;
+          idxOffset += idx.length;
+        }
+        vertOffset += g.attributes.position.count;
+      }
+      const merged = new THREE.BufferGeometry();
+      merged.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      if (normals) merged.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+      if (uvs) merged.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+      if (indices) merged.setIndex(new THREE.BufferAttribute(indices, 1));
+      merged.computeBoundingBox();
+      merged.computeBoundingSphere();
+      return merged;
+    }
+
+    function buildMergedWorkstations() {
+      if (workstations.length === 0) return;
+      const deskMat = new THREE.MeshStandardMaterial({ color: 0x2b303a, roughness: 0.5, metalness: 0.2 });
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x111115, metalness: 0.8, roughness: 0.3 });
+      const chairMat = new THREE.MeshStandardMaterial({ color: 0x1e2229, roughness: 0.8 });
+      const monMat = new THREE.MeshStandardMaterial({ color: 0x0f1115, roughness: 0.4 });
+      const screenMat = new THREE.MeshStandardMaterial({ color: 0x00d2ff, emissive: 0x0055aa, emissiveIntensity: 0.7, roughness: 0.2 });
+      const kbMat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.6 });
+      const deskGeoBase = new THREE.BoxGeometry(0.70, 0.05, 0.48);
+      const legGeoBase = new THREE.BoxGeometry(0.05, 0.7, 0.05);
+      const baseLegGeoBase = new THREE.CylinderGeometry(0.03, 0.03, 0.42, 8);
+      const seatGeoBase = new THREE.BoxGeometry(0.36, 0.05, 0.36);
+      const backGeoBase = new THREE.BoxGeometry(0.36, 0.35, 0.05);
+      const monBaseGeoBase = new THREE.BoxGeometry(0.20, 0.02, 0.15);
+      const monStandGeoBase = new THREE.BoxGeometry(0.05, 0.18, 0.03);
+      const screenGeoBase = new THREE.BoxGeometry(0.42, 0.28, 0.025);
+      const kbGeoBase = new THREE.BoxGeometry(0.32, 0.015, 0.12);
+      const legOffsets = [[-0.30,-0.20],[0.30,-0.20],[-0.30,0.20],[0.30,0.20]];
+      const deskPieces = [], legPieces = [], chairPieces = [], monPieces = [], screenPieces = [], kbPieces = [];
+      const rotAxis = new THREE.Vector3(0, 1, 0);
+      const scaleVec = new THREE.Vector3(1, 1, 1);
+      for (const ws of workstations) {
+        const groupM = new THREE.Matrix4().compose(
+          new THREE.Vector3(ws.x, 0, ws.z),
+          new THREE.Quaternion().setFromAxisAngle(rotAxis, ws.rotationY),
+          scaleVec
+        );
+        function bake(baseGeo, lx, ly, lz) {
+          const g = baseGeo.clone();
+          const localM = new THREE.Matrix4().makeTranslation(lx, ly, lz);
+          g.applyMatrix4(groupM.clone().multiply(localM));
+          return g;
+        }
+        deskPieces.push(bake(deskGeoBase, 0, 0.7, 0));
+        for (const [lx, lz] of legOffsets) legPieces.push(bake(legGeoBase, lx, 0.35, lz));
+        legPieces.push(bake(baseLegGeoBase, 0, 0.21, 0.35));
+        chairPieces.push(bake(seatGeoBase, 0, 0.45, 0.35));
+        chairPieces.push(bake(backGeoBase, 0, 0.65, 0.51));
+        monPieces.push(bake(monBaseGeoBase, 0, 0.74, -0.10));
+        monPieces.push(bake(monStandGeoBase, 0, 0.83, -0.12));
+        screenPieces.push(bake(screenGeoBase, 0, 0.94, -0.11));
+        kbPieces.push(bake(kbGeoBase, 0, 0.73, 0.08));
+      }
+      function addMerged(pieces, material, castShadow) {
+        if (pieces.length === 0) return;
+        const merged = mergeGeoms(pieces);
+        const mesh = new THREE.Mesh(merged, material);
+        mesh.castShadow = castShadow;
+        mesh.receiveShadow = true;
+        mesh.matrixAutoUpdate = false;
+        mesh.updateMatrix();
+        scene.add(mesh);
+        for (const g of pieces) g.dispose();
+      }
+      addMerged(deskPieces, deskMat, true);
+      addMerged(legPieces, legMat, false);
+      addMerged(chairPieces, chairMat, false);
+      addMerged(monPieces, monMat, false);
+      addMerged(screenPieces, screenMat, false);
+      addMerged(kbPieces, kbMat, false);
+      deskGeoBase.dispose(); legGeoBase.dispose(); baseLegGeoBase.dispose();
+      seatGeoBase.dispose(); backGeoBase.dispose(); monBaseGeoBase.dispose();
+      monStandGeoBase.dispose(); screenGeoBase.dispose(); kbGeoBase.dispose();
     }
 
     const colsRojo = [13.35, 14.20, 15.05, 15.90, 16.75, 17.60, 18.45, 19.30];
@@ -2545,25 +2651,22 @@
       const x = parseFloat(xStr);
       filasAzul[xStr].forEach(z => createWorkstation(x, z, ROT_AZUL, 'azul'));
     });
+    if (PERF.mergeWorkstations) buildMergedWorkstations();
 
-    /* Personas */
     const people = [];
     const PERSON_COLORS = [0x2266ff, 0xff8800, 0x22cc55, 0xee3333, 0x9933ff, 0x00cccc, 0xee0088, 0xffbb00, 0x3388ff, 0x00aa77];
     const ROOM_COLORS = { rojo: 0xee3333, verde: 0x22cc55, naranja: 0xff8800, azul: 0x2266ff };
     const ALERT_MARKER_DURATION = 1.5;
-
     let isPeopleVisible = true;
     let isPeopleMoving = true;
     let evacuationMode = true;
     let deathCount = 0;
-
     const elContadorMuertes = document.getElementById('contador-muertes');
     const elContadorMuertesMovil = document.getElementById('contador-muertes-movil');
     function updateDeathCounter() {
       if (elContadorMuertes) elContadorMuertes.textContent = deathCount;
       if (elContadorMuertesMovil) elContadorMuertesMovil.textContent = deathCount;
     }
-
     const EXIT_ZONE_RADIUS = 1.0;
     function isNearExit(x, z) {
       for (let k = 0; k < EXITS.length; k++) {
@@ -2572,7 +2675,6 @@
       }
       return false;
     }
-
     function getHeatAt(x, z) {
       const cx = Math.floor((x - heatMinX) / heatCellW);
       const cz = Math.floor((z - heatMinZ) / heatCellD);
@@ -2634,7 +2736,6 @@
       }
       return false;
     }
-
     let _deathMarkerTexture = null;
     function getDeathMarkerTexture() {
       if (_deathMarkerTexture) return _deathMarkerTexture;
@@ -2657,7 +2758,6 @@
       sprite.position.set(0, 1.85, 0);
       return sprite;
     }
-
     let _alertMarkerTexture = null;
     function getAlertMarkerTexture() {
       if (_alertMarkerTexture) return _alertMarkerTexture;
@@ -2683,7 +2783,6 @@
       sprite.visible = false;
       return sprite;
     }
-
     function showAlertMarker(p) {
       if (p.alertMarker) p.alertMarker.visible = true;
       if (p.healthBar) p.healthBar.visible = false;
@@ -2694,7 +2793,6 @@
       if (p.alertMarker) p.alertMarker.visible = false;
       if (p.healthBar && !p.isDead) p.healthBar.visible = true;
     }
-
     let _healthTextures = null;
     function getHealthTextures() {
       if (_healthTextures) return _healthTextures;
@@ -2724,93 +2822,58 @@
       return _healthTextures;
     }
 
-    /* ═══ PERSONAS CON ARTICULACIONES ═══ */
     function createPerson(x, z, color = 0x2266ff, workstation = null) {
       const group = new THREE.Group();
       const bodyMat  = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
       const skinMat  = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.8 });
       const pantsMat = new THREE.MeshStandardMaterial({ color: 0x2a3550, roughness: 0.85 });
       const shoeMat  = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6 });
-
       const body = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.17, 0.6, 10), bodyMat);
-      body.position.y = 0.95;
-      body.castShadow = true;
-      group.add(body);
-
+      body.position.y = 0.95; body.castShadow = true; group.add(body);
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), skinMat);
-      head.position.y = 0.5;
-      head.castShadow = true;
-      body.add(head);
-
+      head.position.y = 0.5; head.castShadow = false; body.add(head);
       function buildArm(side) {
-        const shoulder = new THREE.Group();
-        shoulder.position.set(side * 0.20, 0.22, 0);
-        body.add(shoulder);
+        const shoulder = new THREE.Group(); shoulder.position.set(side * 0.20, 0.22, 0); body.add(shoulder);
         const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.26, 8), bodyMat);
-        upperArm.position.y = -0.13; upperArm.castShadow = true; shoulder.add(upperArm);
-        const elbow = new THREE.Group();
-        elbow.position.y = -0.26;
-        shoulder.add(elbow);
+        upperArm.position.y = -0.13; upperArm.castShadow = false; shoulder.add(upperArm);
+        const elbow = new THREE.Group(); elbow.position.y = -0.26; shoulder.add(elbow);
         const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.24, 8), skinMat);
-        forearm.position.y = -0.12; forearm.castShadow = true; elbow.add(forearm);
+        forearm.position.y = -0.12; forearm.castShadow = false; elbow.add(forearm);
         const hand = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), skinMat);
-        hand.position.y = -0.27; hand.castShadow = true; elbow.add(hand);
+        hand.position.y = -0.27; hand.castShadow = false; elbow.add(hand);
         return { shoulder, elbow };
       }
-
       function buildLeg(side) {
-        const hip = new THREE.Group();
-        hip.position.set(side * 0.085, -0.325, 0);
-        body.add(hip);
+        const hip = new THREE.Group(); hip.position.set(side * 0.085, -0.325, 0); body.add(hip);
         const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.28, 8), pantsMat);
-        thigh.position.y = -0.14; thigh.castShadow = true; hip.add(thigh);
-        const knee = new THREE.Group();
-        knee.position.y = -0.28;
-        hip.add(knee);
+        thigh.position.y = -0.14; thigh.castShadow = false; hip.add(thigh);
+        const knee = new THREE.Group(); knee.position.y = -0.28; hip.add(knee);
         const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.055, 0.28, 8), pantsMat);
-        shin.position.y = -0.14; shin.castShadow = true; knee.add(shin);
+        shin.position.y = -0.14; shin.castShadow = false; knee.add(shin);
         const foot = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.06, 0.22), shoeMat);
-        foot.position.set(0, -0.28 - 0.02, 0.04); foot.castShadow = true; knee.add(foot);
+        foot.position.set(0, -0.28 - 0.02, 0.04); foot.castShadow = false; knee.add(foot);
         return { hip, knee };
       }
-
-      const leftArm  = buildArm(-1);
-      const rightArm = buildArm(1);
-      const leftLeg  = buildLeg(-1);
-      const rightLeg = buildLeg(1);
-
-      const alertMarker = createAlertMarker();
-      group.add(alertMarker);
-      const healthBar = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: getHealthTextures()[HEALTH_LEVELS], transparent: true, depthTest: true, depthWrite: false
-      }));
-      healthBar.scale.set(1.0, 0.225, 1);
-      healthBar.position.set(0, 1.95, 0);
-      healthBar.visible = true;
-      group.add(healthBar);
-
+      const leftArm = buildArm(-1), rightArm = buildArm(1);
+      const leftLeg = buildLeg(-1), rightLeg = buildLeg(1);
+      const alertMarker = createAlertMarker(); group.add(alertMarker);
+      const healthBar = new THREE.Sprite(new THREE.SpriteMaterial({ map: getHealthTextures()[HEALTH_LEVELS], transparent: true, depthTest: true, depthWrite: false }));
+      healthBar.scale.set(1.0, 0.225, 1); healthBar.position.set(0, 1.95, 0); healthBar.visible = true; group.add(healthBar);
       let px = x, pz = z, rotY = Math.random() * Math.PI * 2, isSitting = false;
-      if (workstation) {
-        px = workstation.seatPos.x; pz = workstation.seatPos.z;
-        rotY = workstation.rotationY + Math.PI; isSitting = true;
-        workstation.occupied = true;
-      }
+      if (workstation) { px = workstation.seatPos.x; pz = workstation.seatPos.z; rotY = workstation.rotationY + Math.PI; isSitting = true; workstation.occupied = true; }
       group.position.set(px, isSitting ? -0.15 : 0, pz);
       group.rotation.y = rotY;
       scene.add(group);
-
       let nearestExit = 0, bestD2 = Infinity;
       for (let k = 0; k < EXITS.length; k++) {
         const d2 = (px - EXITS[k].x) ** 2 + (pz - EXITS[k].z) ** 2;
         if (d2 < bestD2) { bestD2 = d2; nearestExit = k; }
       }
-
       const personObj = {
         mesh: group, body, head,
-        leftShoulder: leftArm.shoulder,  leftElbow: leftArm.elbow,
+        leftShoulder: leftArm.shoulder, leftElbow: leftArm.elbow,
         rightShoulder: rightArm.shoulder, rightElbow: rightArm.elbow,
-        leftHip: leftLeg.hip, leftKnee: leftLeg.knee,
-        rightHip: rightLeg.hip, rightKnee: rightLeg.knee,
+        leftHip: leftLeg.hip, leftKnee: leftLeg.knee, rightHip: rightLeg.hip, rightKnee: rightLeg.knee,
         bodyMat, skinMat, pantsMat, shoeMat,
         name: generateArgentineName(),
         x: px, z: pz, workstation,
@@ -2819,31 +2882,20 @@
         idleTime: 0, stuckFrames: 0,
         state: isSitting ? 'sitting' : 'wandering',
         alerted: false, reactionDelay: 0,
-        contagionCue: false,
-        alertTimer: 0,
-        wanderAngle: rotY,
-        wanderTimer: 1.0 + Math.random() * 2.0,
-        fed: 0,
-        isDead: false,
-        deathMarker: null,
-        alertMarker, healthBar,
-        healthLevel: HEALTH_LEVELS,
-        originRoomIdx: -1,
-        lost: false,
+        contagionCue: false, alertTimer: 0,
+        wanderAngle: rotY, wanderTimer: 1.0 + Math.random() * 2.0,
+        fed: 0, isDead: false, deathMarker: null,
+        alertMarker, healthBar, healthLevel: HEALTH_LEVELS,
+        originRoomIdx: -1, lost: false,
         confusionTimer: 0, confusionTarget: null, confusionCooldown: 0,
-        bumpTimer: 0,
-        targetExitIdx: nearestExit,
-        exitSwitchCooldown: 0,
-        povStartPos: null,
-        povOriginalState: null,
-        povOriginalWorkstation: null
+        bumpTimer: 0, targetExitIdx: nearestExit, exitSwitchCooldown: 0,
+        povStartPos: null, povOriginalState: null, povOriginalWorkstation: null
       };
       group.traverse(c => { if (c.isMesh) c.userData.person = personObj; });
       people.push(personObj);
       return personObj;
     }
 
-    /* ═══ Funciones de animación ═══ */
     function animatePersonWalk(p, time, intensity) {
       const amp = intensity ?? 1.0;
       const phase = time * 9 * p.speed + p.animOffset;
@@ -2861,29 +2913,26 @@
     }
     function animatePersonIdle(p) {
       p.body.position.y = 0.95;
-      p.leftHip.rotation.x = 0;   p.rightHip.rotation.x = 0;
-      p.leftKnee.rotation.x = 0;  p.rightKnee.rotation.x = 0;
-      p.leftShoulder.rotation.x = 0;  p.rightShoulder.rotation.x = 0;
+      p.leftHip.rotation.x = 0; p.rightHip.rotation.x = 0;
+      p.leftKnee.rotation.x = 0; p.rightKnee.rotation.x = 0;
+      p.leftShoulder.rotation.x = 0; p.rightShoulder.rotation.x = 0;
       p.leftElbow.rotation.x = -0.12; p.rightElbow.rotation.x = -0.12;
     }
     function animatePersonSit(p, time) {
       const breath = Math.sin(time * 1.5 + p.animOffset);
       p.body.position.y = 0.95 + breath * 0.005;
-      p.leftHip.rotation.x  = -1.5;  p.rightHip.rotation.x = -1.5;
-      p.leftKnee.rotation.x  = 1.5;  p.rightKnee.rotation.x = 1.5;
-      p.leftShoulder.rotation.x  = -0.35;  p.rightShoulder.rotation.x = -0.35;
-      p.leftElbow.rotation.x  = -0.75;  p.rightElbow.rotation.x = -0.75;
+      p.leftHip.rotation.x  = -1.5; p.rightHip.rotation.x = -1.5;
+      p.leftKnee.rotation.x  = 1.5; p.rightKnee.rotation.x = 1.5;
+      p.leftShoulder.rotation.x  = -0.35; p.rightShoulder.rotation.x = -0.35;
+      p.leftElbow.rotation.x  = -0.75; p.rightElbow.rotation.x = -0.75;
     }
     function animatePersonDoorReach(p) {
       p.body.position.y = 0.95;
-      p.leftHip.rotation.x = 0;   p.rightHip.rotation.x = 0;
-      p.leftKnee.rotation.x = 0;  p.rightKnee.rotation.x = 0;
-      p.rightShoulder.rotation.x = -1.3;
-      p.rightElbow.rotation.x    = -0.25;
-      p.leftShoulder.rotation.x = 0;
-      p.leftElbow.rotation.x    = -0.15;
+      p.leftHip.rotation.x = 0; p.rightHip.rotation.x = 0;
+      p.leftKnee.rotation.x = 0; p.rightKnee.rotation.x = 0;
+      p.rightShoulder.rotation.x = -1.3; p.rightElbow.rotation.x = -0.25;
+      p.leftShoulder.rotation.x = 0; p.leftElbow.rotation.x = -0.15;
     }
-
     function getRandomWalkablePointInRoom(roomObj) {
       if (!walkableList || walkableList.length === 0) return { x: 15, z: -10 };
       const boxes = roomObj.boxes || [{ minX: roomObj.minX, maxX: roomObj.maxX, minZ: roomObj.minZ, maxZ: roomObj.maxZ }];
@@ -2904,7 +2953,6 @@
       people.forEach(p => scene.remove(p.mesh));
       people.length = 0;
     }
-
     const SPAWN_ROOMS = [
       { key: 'rojo',    roomIdx: 0, slider: 'rng-cant-rojo',    defaultCount: 8 },
       { key: 'verde',   roomIdx: 2, slider: 'rng-cant-verde',   defaultCount: 4 },
@@ -2930,10 +2978,7 @@
       }
       const wss = workstations.filter(ws => ws.roomId === def.key);
       const free = wss.filter(ws => !ws.occupied);
-      for (let i = free.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [free[i], free[j]] = [free[j], free[i]];
-      }
+      for (let i = free.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [free[i], free[j]] = [free[j], free[i]]; }
       const need = targetCount - current.length;
       for (let i = 0; i < need; i++) {
         const color = ROOM_COLORS[def.key] ?? PERSON_COLORS[(current.length + i + colorOffset) % PERSON_COLORS.length];
@@ -2970,7 +3015,6 @@
     }
     spawnPeople();
     updateDeathCounter();
-
     function removePerson(index) {
       const p = people[index];
       if (p === povPerson) exitPov();
@@ -3003,7 +3047,6 @@
       }
       return false;
     }
-
     const STEER_OFFSETS = [0, 0.35, -0.35, 0.70, -0.70, 1.05, -1.05, 1.40, -1.40, 1.75, -1.75];
     function findClearStep(p, baseAngle, step) {
       for (let s = 0; s < STEER_OFFSETS.length; s++) {
@@ -3028,7 +3071,6 @@
       }
       return moved ? angle : null;
     }
-
     function startConfusion(p) {
       const options = LAB_ROOM_IDX_S.filter(idx => idx !== p.originRoomIdx);
       if (options.length === 0) return;
@@ -3050,7 +3092,6 @@
       if (bestD2 < CONFUSION_SAFE_R * CONFUSION_SAFE_R) return;
       if (Math.random() < CONFUSION_CHANCE * delta * simSpeed) startConfusion(p);
     }
-
     function updatePeople(delta, time) {
       if (!isPeopleVisible && !povPerson) return;
       if (evacuationMode) {
@@ -3107,7 +3148,6 @@
         }
         if (!isPeopleMoving) continue;
         const dangerFactor = getSpeedFactorByHeat(p.x, p.z);
-
         if ((p.state === 'sitting' || p.state === 'wandering' || p.state === 'standing') && evacuationMode) {
           const heat = getHeatAt(p.x, p.z);
           const recintoPeligroso = (estadoRecinto === 'Peligroso' || estadoRecinto === 'Muy Peligroso' || estadoRecinto === 'Mortal');
@@ -3132,10 +3172,8 @@
             }
           }
         }
-
         if (p.state === 'sitting') { animatePersonSit(p, time); p.mesh.position.set(p.x, -0.15, p.z); continue; }
         if (p.state === 'standing') { animatePersonIdle(p); p.mesh.position.set(p.x, 0, p.z); continue; }
-
         if (p.state === 'wandering') {
           if (p.idleTime > 0) { p.idleTime -= delta * simSpeed; animatePersonIdle(p); continue; }
           p.wanderTimer -= delta * simSpeed;
@@ -3165,7 +3203,6 @@
           }
           continue;
         }
-
         if (p.state === 'evacuating') {
           if (p.idleTime > 0) { p.idleTime -= delta * simSpeed; animatePersonIdle(p); continue; }
           if (!p.lost && isNearExit(p.x, p.z)) { removePerson(i); continue; }
@@ -3259,7 +3296,6 @@
       }
     }
 
-    /* Sistema de fuego */
     function createFireSystem(x, z, options = {}) {
       const castShadow = options.castShadow ?? false;
       const poolSize = options.poolSize ?? MAX_SMOKE;
@@ -3269,12 +3305,15 @@
       const noFirstSpread = options.noFirstSpread ?? false;
       const flameTop = options.flameTop ?? FLAME_TOP;
       const origin = new THREE.Vector3(x, 0.2, z);
-
-      const light = new THREE.PointLight(0xff4400, 0.3, 8, 2);
-      light.position.set(origin.x, 0.8, origin.z);
-      light.castShadow = castShadow;
-      scene.add(light);
-
+      let light;
+      if (PERF.limitFireLights) {
+        light = { visible: true, intensity: 0.3, isProxy: true };
+      } else {
+        light = new THREE.PointLight(0xff4400, 0.3, 8, 2);
+        light.position.set(origin.x, 0.8, origin.z);
+        light.castShadow = castShadow;
+        scene.add(light);
+      }
       const flameGeo = new THREE.BufferGeometry();
       const flamePos = new Float32Array(flameCount * 3);
       const flameSpeeds = [];
@@ -3287,30 +3326,28 @@
       flameGeo.setAttribute('position', new THREE.BufferAttribute(flamePos, 3));
       const flameMat = new THREE.PointsMaterial({ color: 0xff3700, size: 0.23, transparent: true, opacity: 0.85 });
       const flames = new THREE.Points(flameGeo, flameMat);
-      flames.layers.set(1);
-      scene.add(flames);
-
+      flames.layers.set(1); scene.add(flames);
       const smokeGeo = new THREE.BufferGeometry();
       const smokePos = new Float32Array(poolSize * 3);
       const smokeVel = [];
       for (let i = 0; i < poolSize; i++) {
-        smokePos[i*3] = origin.x;
-        smokePos[i*3+1] = -9999;
-        smokePos[i*3+2] = origin.z;
+        smokePos[i*3] = origin.x; smokePos[i*3+1] = -9999; smokePos[i*3+2] = origin.z;
         const angle = Math.random() * Math.PI * 2;
         const spreadSpeed = SMOKE_SPREAD_MIN + Math.random() * (SMOKE_SPREAD_MAX - SMOKE_SPREAD_MIN);
         smokeVel.push({ vx: Math.cos(angle) * spreadSpeed, vy: PLUME_RISE_MIN + Math.random() * (PLUME_RISE_MAX - PLUME_RISE_MIN), vz: Math.sin(angle) * spreadSpeed, cooling: false, cool: LAYER_DESCENT_MIN + Math.random() * (LAYER_DESCENT_MAX - LAYER_DESCENT_MIN) });
       }
       smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePos, 3));
-      const smokeMat = new THREE.PointsMaterial({ color: 0x1a1a1a, size: 0.33, transparent: true, opacity: SMOKE_MAIN_OPACITY, depthWrite: false });
+      const smokeMat = new THREE.PointsMaterial({
+        color: 0x1a1a1a,
+        size: (IS_MOBILE || !PERF.reduceSmoke) ? 0.33 : 0.35,
+        transparent: true, opacity: SMOKE_MAIN_OPACITY, depthWrite: false
+      });
       const smoke = new THREE.Points(smokeGeo, smokeMat);
       smoke.visible = false; smoke.frustumCulled = false; smoke.layers.set(1);
       scene.add(smoke);
-
       const sArr = smokeGeo.attributes.position.array;
       const fArr = flameGeo.attributes.position.array;
       let phase = 0;
-
       return {
         origin, active: true, activeSmokeCount: 0, spawnAccumulator: 0, smokeArray: sArr,
         light, flames, smoke, poolSize, flameCount, isManual,
@@ -3320,7 +3357,8 @@
         firstSpreadDone: !isManual || noFirstSpread,
         dispose() {
           light.visible = false; flames.visible = false; smoke.visible = false;
-          scene.remove(light); scene.remove(flames); scene.remove(smoke);
+          if (!light.isProxy) scene.remove(light);
+          scene.remove(flames); scene.remove(smoke);
           flameGeo.dispose(); flameMat.dispose(); smokeGeo.dispose(); smokeMat.dispose();
         },
         toggle(state) {
@@ -3431,7 +3469,6 @@
     const fires = [];
     const pendingIgnitions = [];
     let _fireLimitTimer = null;
-
     function hasActiveFires() {
       for (let i = 0; i < fires.length; i++) if (fires[i].active) return true;
       return false;
@@ -3564,7 +3601,6 @@
         if (focosEl.textContent !== v) focosEl.textContent = v;
       }
     }
-
     function findNearestWorkstationToPoint(x, z) {
       let best = null, bestD2 = Infinity;
       for (const ws of workstations) {
@@ -3574,7 +3610,6 @@
       }
       return best;
     }
-
     const explosionBursts = [];
     function spawnExplosionBurst(x, z) {
       const count = IS_MOBILE ? 50 : 100;
@@ -3590,11 +3625,10 @@
       geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
       const mat = new THREE.PointsMaterial({ color: 0xffaa00, size: 0.45, transparent: true, opacity: 1, depthWrite: false, blending: THREE.AdditiveBlending });
       const points = new THREE.Points(geo, mat);
-      points.frustumCulled = false;
-      scene.add(points);
-      const flashLight = new THREE.PointLight(0xffaa00, 6, 10, 2);
-      flashLight.position.set(x, 1.2, z);
-      scene.add(flashLight);
+      points.frustumCulled = false; scene.add(points);
+      // Cambio 1c: en celular no se crea la luz del flash de explosión.
+      const flashLight = IS_MOBILE ? null : new THREE.PointLight(0xffaa00, 6, 10, 2);
+      if (flashLight) { flashLight.position.set(x, 1.2, z); scene.add(flashLight); }
       explosionBursts.push({ points, geo, mat, vels, pos, life: 0.9, maxLife: 0.9, light: flashLight });
     }
     function updateExplosionBursts(delta) {
@@ -3602,7 +3636,8 @@
         const eb = explosionBursts[i];
         eb.life -= delta;
         if (eb.life <= 0) {
-          scene.remove(eb.points); scene.remove(eb.light);
+          scene.remove(eb.points);
+          if (eb.light) scene.remove(eb.light);
           eb.geo.dispose(); eb.mat.dispose();
           explosionBursts.splice(i, 1); continue;
         }
@@ -3621,7 +3656,6 @@
         if (eb.light) eb.light.intensity = 6 * t;
       }
     }
-
     function breakDoor(door) {
       if (!door || door.broken) return;
       door.broken = true; door.isOpen = true; door.personOpening = false; door.personOpeningTimer = 0;
@@ -3657,7 +3691,6 @@
         });
       }
     }
-
     function triggerServerExplosion(sr) {
       if (sr.exploded) return;
       sr.exploded = true;
@@ -3685,13 +3718,10 @@
     function igniteServerWithNewFire(sr) {
       const serverFire = createFireSystem(sr.x, sr.z, {
         castShadow: false, poolSize: MAX_SMOKE, initialIntensity: 1.0,
-        flameCount: IS_MOBILE ? 80 : 150, isManual: true, flameTop: FLAME_SERVER_TOP,
-        noFirstSpread: true
+        flameCount: IS_MOBILE ? 80 : 150, isManual: true, flameTop: FLAME_SERVER_TOP, noFirstSpread: true
       });
-      serverFire.serverMode = true;
-      serverFire.isServerFire = true;
-      serverFire.toggle(true);
-      fires.push(serverFire);
+      serverFire.serverMode = true; serverFire.isServerFire = true;
+      serverFire.toggle(true); fires.push(serverFire);
     }
     function updateServerFireDetection(delta) {
       const dtSim = delta * simSpeed;
@@ -3735,14 +3765,69 @@
         } else { sr.roomFireDetected = false; sr.roomFireTimer = 0; }
       }
     }
+    const _fireSortTmp = [];
+    function updateFireLightPool() {
+      if (!PERF.limitFireLights || FIRE_LIGHT_POOL.length === 0) return;
+      const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
+      _fireSortTmp.length = 0;
+      for (let i = 0; i < fires.length; i++) {
+        const f = fires[i];
+        if (!f.active || !f.light || !f.light.visible) continue;
+        const dx = f.origin.x - cx, dy = 0.8 - cy, dz = f.origin.z - cz;
+        _fireSortTmp.push({ fire: f, distSq: dx*dx + dy*dy + dz*dz });
+      }
+      _fireSortTmp.sort((a, b) => a.distSq - b.distSq);
+      for (let i = 0; i < FIRE_LIGHT_POOL.length; i++) {
+        const poolLight = FIRE_LIGHT_POOL[i];
+        const entry = _fireSortTmp[i];
+        if (entry) {
+          poolLight.position.set(entry.fire.origin.x, 0.8, entry.fire.origin.z);
+          poolLight.intensity = entry.fire.light.intensity;
+        } else {
+          poolLight.intensity = 0;
+        }
+      }
+    }
+    function freezeStaticScene() {
+      function freezeObj(obj) {
+        if (!obj) return;
+        obj.updateMatrix();
+        obj.updateMatrixWorld(true);
+        obj.matrixAutoUpdate = false;
+      }
+      if (model) {
+        model.traverse(child => { if (child.isMesh) { child.updateMatrix(); child.matrixAutoUpdate = false; } });
+        freezeObj(model);
+      }
+      freezeObj(floor);
+      freezeObj(grid);
+      freezeObj(ceiling);
+      scene.traverse(child => {
+        if (child.userData && child.userData.isExitSign) freezeObj(child);
+      });
+      for (const ws of workstations) {
+        if (!ws.group) continue;
+        ws.group.traverse(child => { if (child.isMesh || child === ws.group) { child.updateMatrix(); child.matrixAutoUpdate = false; } });
+        freezeObj(ws.group);
+      }
+      for (const sr of serverRacks) {
+        if (!sr.group) continue;
+        sr.group.traverse(child => { if (child.isMesh || child === sr.group) { child.updateMatrix(); child.matrixAutoUpdate = false; } });
+        freezeObj(sr.group);
+      }
+      for (const w of windowsList) {
+        freezeObj(w.group);
+        if (w.glassGroup) freezeObj(w.glassGroup);
+        if (w.fixedPaneGroup) freezeObj(w.fixedPaneGroup);
+        if (w.jaggedGroup) freezeObj(w.jaggedGroup);
+      }
+    }
 
     const clickRaycaster = new THREE.Raycaster();
     const clickPointer = new THREE.Vector2();
     let ptrDown = { x: 0, y: 0, time: 0 };
     let lastPersonClick = { person: null, time: 0 };
-
     window.addEventListener('pointerdown', (e) => { ptrDown = { x: e.clientX, y: e.clientY, time: Date.now() }; });
-
     function tryClickDoorOrWindow(raycaster) {
       const doorClickMeshes = [];
       doorsList.forEach(d => { if (!d.pivotGroup.visible) return; d.pivotGroup.traverse(c => { if (c.isMesh && c.visible) doorClickMeshes.push(c); }); });
@@ -3777,7 +3862,6 @@
       }
       return false;
     }
-
     function findPersonFromHitObject(hitObj) {
       let cur = hitObj;
       while (cur) {
@@ -3786,7 +3870,6 @@
       }
       return null;
     }
-
     function tryClickPerson(raycaster, screenX, screenY) {
       const personMeshes = [];
       for (let i = 0; i < people.length; i++) {
@@ -3805,7 +3888,6 @@
       if (p) { showPersonTooltip(p, screenX, screenY); return true; }
       return false;
     }
-
     function tryPlaceFireAtScreenPoint(raycaster) {
       const floorHits = raycaster.intersectObject(floor);
       if (floorHits.length === 0) return false;
@@ -3814,7 +3896,7 @@
         const currentRoomIdx = getRoomIdxAt(povPerson.x, povPerson.z);
         if (currentRoomIdx === -1) return false;
         const clickRoomIdx = getRoomIdxAt(pt.x, pt.z);
-        if (clickRoomIdx === currentRoomIdx) { /* OK */ }
+        if (clickRoomIdx === currentRoomIdx) {}
         else if (clickRoomIdx === 5 && currentRoomIdx === 4) {
           const door = doorsList.find(d => d.id === 'door-interior-azul');
           if (!door || (!door.isOpen && !door.broken)) return false;
@@ -3837,14 +3919,13 @@
       if (!ignitedServer) { if (!addFireAt(pt.x, pt.z, false)) flashFireLimit(); }
       return true;
     }
-
     window.addEventListener('pointerup', (e) => {
       if (e.target.closest('#ui') || e.target.closest('#btn-menu') || e.target.closest('#tabla-seguridad') || e.target.closest('#btn-ui-restore')) return;
       if (e.target.closest('#pov-hud')) return;
       if (e.target.closest('#corte-marco')) return;
+      if (e.target.closest('#mobile-perf-controls')) return;
       const dist = Math.hypot(e.clientX - ptrDown.x, e.clientY - ptrDown.y);
       const isClick = dist <= 8 && (Date.now() - ptrDown.time) <= 400;
-
       if (povPerson) {
         if (!isClick || e.button !== 0) return;
         hidePersonTooltip();
@@ -3856,7 +3937,6 @@
         if (superPovMode) tryClickDoorOrWindow(clickRaycaster);
         return;
       }
-
       if (e.button !== 0) return;
       if (!isClick) return;
       hidePersonTooltip();
@@ -3865,7 +3945,6 @@
       clickRaycaster.setFromCamera(clickPointer, camera);
       if (firePlacementMode) { tryPlaceFireAtScreenPoint(clickRaycaster); return; }
       if (tryClickDoorOrWindow(clickRaycaster)) return;
-
       const personMeshes = [];
       for (let i = 0; i < people.length; i++) people[i].mesh.traverse(c => { if (c.isMesh) personMeshes.push(c); });
       if (personMeshes.length > 0) {
@@ -3879,7 +3958,7 @@
             if (p) {
               if (p.isDead) { showPersonTooltip(p, e.clientX, e.clientY); return; }
               const now = Date.now();
-              if (lastPersonClick.person === p && (now - lastPersonClick.time) < DOUBLE_CLICK_MS) {
+              if (!IS_MOBILE && lastPersonClick.person === p && (now - lastPersonClick.time) < DOUBLE_CLICK_MS) {
                 enterPov(p); lastPersonClick = { person: null, time: 0 };
               } else {
                 showPersonTooltip(p, e.clientX, e.clientY);
@@ -3891,20 +3970,16 @@
         }
       }
     });
-
     let _tooltipTimer = null;
     const _tooltipEl = document.getElementById('person-tooltip');
-    function hidePersonTooltip() {
-      if (_tooltipEl) _tooltipEl.style.display = 'none';
-      clearTimeout(_tooltipTimer);
-    }
+    function hidePersonTooltip() { if (_tooltipEl) _tooltipEl.style.display = 'none'; clearTimeout(_tooltipTimer); }
     function showPersonTooltip(p, clickX, clickY) {
       if (!_tooltipEl) return;
       const stateLabel = { 'sitting': 'Sentado/a', 'wandering': 'Deambulando', 'evacuating': 'Evacuando', 'dead': 'Fallecido/a', 'superpov': 'Manual', 'standing': 'De pie' }[p.state] || p.state;
       const dangerFactor = getSpeedFactorByHeat(p.x, p.z);
       const effective = p.speed * dangerFactor;
       const healthPct = Math.round((1 - p.fed) * 100);
-      const hint = p.isDead ? '' : '<div class="pov-hint">Doble click → POV</div>';
+      const hint = (p.isDead || IS_MOBILE) ? '' : '<div class="pov-hint">Doble click → POV</div>';
       const avatarUrl = 'https://api.dicebear.com/10.x/lorelei/svg?seed=' + encodeURIComponent(p.name);
       _tooltipEl.innerHTML =
         '<div class="tooltip-avatar"><img src="' + avatarUrl + '" width="56" height="56" alt="" onerror="this.parentElement.style.display=\'none\'" /></div>' +
@@ -3914,8 +3989,7 @@
           '<div class="row"><span>Velocidad actual:</span><b class="speed-val">' + effective.toFixed(2) + ' m/s</b></div>' +
           '<div class="row"><span>Estado:</span><b>' + stateLabel + '</b></div>' +
           '<div class="row"><span>Salud:</span><b>' + healthPct + '%</b></div>' +
-          hint +
-        '</div>';
+          hint + '</div>';
       _tooltipEl.style.display = 'block';
       const left = Math.min(clickX + 15, window.innerWidth - 330);
       const top = Math.min(clickY + 15, window.innerHeight - 180);
@@ -3924,7 +3998,6 @@
       clearTimeout(_tooltipTimer);
       _tooltipTimer = setTimeout(() => { _tooltipEl.style.display = 'none'; }, TOOLTIP_DURATION);
     }
-
     window.addEventListener('pointermove', (e) => {
       if (IS_MOBILE) return;
       if (e.buttons !== 0) return;
@@ -3949,7 +4022,6 @@
     const colorYellow = new THREE.Color(0xffeb3b);
     const colorRed = new THREE.Color(0xf44336);
     const tempColor = new THREE.Color();
-
     const floorPositions = floorGeo.attributes.position.array;
     const floorColors = floorGeo.attributes.color.array;
     const HEAT_COLS = 80, HEAT_ROWS = 80, DENSITY_MAX = 20;
@@ -3959,7 +4031,6 @@
     const heatMinZ = floorCenterZ - floorDepth / 2;
     const heatCellW = floorWidth / HEAT_COLS;
     const heatCellD = floorDepth / HEAT_ROWS;
-
     function computeDensity() {
       heatDensity.fill(0);
       for (let f = 0; f < fires.length; f++) {
@@ -3985,7 +4056,6 @@
       for (let x = 0; x < HEAT_COLS; x++) { heatSmooth[x] = heatDensity[x]; heatSmooth[x + (HEAT_ROWS-1)*HEAT_COLS] = heatDensity[x + (HEAT_ROWS-1)*HEAT_COLS]; }
       for (let z = 0; z < HEAT_ROWS; z++) { heatSmooth[z*HEAT_COLS] = heatDensity[z*HEAT_COLS]; heatSmooth[(HEAT_COLS-1) + z*HEAT_COLS] = heatDensity[(HEAT_COLS-1) + z*HEAT_COLS]; }
     }
-
     function updateHeatmap() {
       for (let i = 0; i < vertexCount; i++) {
         const vx = floorPositions[i*3], vz = floorPositions[i*3+2];
@@ -4003,7 +4073,6 @@
       }
       floorGeo.attributes.color.needsUpdate = true;
     }
-
     function updateRoomStatus() {
       for (let r = 0; r < ROOMS.length; r++) {
         const room = ROOMS[r];
@@ -4057,7 +4126,6 @@
         }
       }
     }
-
     const btnGenerarIncendio = document.getElementById('btn-generar-incendio');
     const btnQuitarIncendios = document.getElementById('btn-quitar-incendios');
     function updateFireButtonLabel() {
@@ -4081,14 +4149,12 @@
     if (btnGenerarIncendio) btnGenerarIncendio.addEventListener('click', () => { setFirePlacementMode(!firePlacementMode); if (firePlacementMode) toggleMenu(false); });
     if (btnQuitarIncendios) btnQuitarIncendios.addEventListener('click', () => { removeAllFires(); setFirePlacementMode(false); });
     document.getElementById('btn-limpiar').addEventListener('click', () => fires.forEach(f => f.clearSmoke()));
-
     const btnDetenerHumo = document.getElementById('btn-detener-humo');
     btnDetenerHumo.addEventListener('click', () => {
       isSmokeGenerating = !isSmokeGenerating;
       if (isSmokeGenerating) { btnDetenerHumo.innerText = 'Detener Humo'; btnDetenerHumo.classList.remove('stopped'); }
       else { btnDetenerHumo.innerText = 'Reanudar Humo'; btnDetenerHumo.classList.add('stopped'); }
     });
-
     const chkPersonas = document.getElementById('chk-personas');
     const chkMovimiento = document.getElementById('chk-movimiento');
     const chkEvacuacion = document.getElementById('chk-evacuacion');
@@ -4104,7 +4170,6 @@
     const rngSimVel = document.getElementById('rng-sim-vel');
     const lblSimVel = document.getElementById('lbl-sim-vel');
     const btnResetPersonas = document.getElementById('btn-reset-personas');
-
     if (chkPersonas) chkPersonas.addEventListener('change', (e) => { isPeopleVisible = e.target.checked; people.forEach(p => p.mesh.visible = isPeopleVisible); });
     if (chkMovimiento) chkMovimiento.addEventListener('change', (e) => { isPeopleMoving = e.target.checked; });
     if (chkEvacuacion) chkEvacuacion.addEventListener('change', (e) => {
@@ -4117,10 +4182,8 @@
     });
     if (chkAutoRomper) chkAutoRomper.addEventListener('change', (e) => { autoBreakOnMortal = e.target.checked; });
     if (rngSimVel) rngSimVel.addEventListener('input', (e) => { simSpeed = parseFloat(e.target.value); if (lblSimVel) lblSimVel.textContent = simSpeed.toFixed(1) + 'x'; });
-
     const btnRepararVidrios = document.getElementById('btn-reparar-vidrios');
     if (btnRepararVidrios) btnRepararVidrios.addEventListener('click', () => repairAllWindows());
-
     function respawnFromSliders() {
       spawnPeople(parseInt(rngRojo?.value ?? 8), parseInt(rngVerde?.value ?? 4), parseInt(rngNaranja?.value ?? 4), parseInt(rngAzul?.value ?? 4));
     }
@@ -4135,9 +4198,8 @@
     const relojHoraEl = document.getElementById('reloj-hora');
     const relojVelEl = document.getElementById('reloj-velocidad');
     let lastRelojHora = '', lastRelojVel = '';
-
     function updateSimClock(delta) {
-            simClockSeconds = (simClockSeconds + delta * simSpeed) % 86400;
+      simClockSeconds = (simClockSeconds + delta * simSpeed) % 86400;
       const total = Math.floor(simClockSeconds);
       const h = Math.floor(total / 3600);
       const m = Math.floor((total % 3600) / 60);
@@ -4149,15 +4211,200 @@
       if (vel !== lastRelojVel) { relojVelEl.textContent = vel; lastRelojVel = vel; }
     }
 
+    function setMinimapVisible(visible) {
+      PERF.diag_hideMinimap = !visible;
+      const el = document.getElementById('minimapa-marco');
+      if (el) el.classList.toggle('perf-hidden', !visible);
+      const btn = document.getElementById('mob-btn-minimap');
+      if (btn) btn.classList.toggle('active', visible);
+    }
+    function setCorteVisible(visible) {
+      PERF.diag_hideCorte = !visible;
+      const el = document.getElementById('corte-marco');
+      if (el) el.classList.toggle('perf-hidden', !visible);
+      const btn = document.getElementById('mob-btn-corte');
+      if (btn) btn.classList.toggle('active', visible);
+    }
+
+    function createPerfPanel() {
+      if (PERF._panelEl) return;
+      const el = document.createElement('div');
+      el.id = 'perf-panel';
+      const c = document.createElement('div');
+      c.id = 'perf-content';
+      c.textContent = 'FPS    —';
+      el.appendChild(c);
+      document.body.appendChild(el);
+      PERF._panelEl = el;
+      PERF._contentEl = c;
+      el.style.display = PERF.showFps ? 'block' : 'none';
+    }
+    function updatePerfDisplay(nowMs) {
+      const samples = PERF._samples;
+      if (samples.length === 0) return;
+      const curStart = nowMs - 500;
+      let curCount = 0, curDt = 0;
+      for (let i = samples.length - 1; i >= 0; i--) {
+        if (samples[i].t < curStart) break;
+        curCount++; curDt += samples[i].dt;
+      }
+      const currentFps = curDt > 0 ? curCount / curDt : 0;
+      const winStart = nowMs - 5000;
+      let sumDt = 0, maxDt = 0, count = 0;
+      for (let i = samples.length - 1; i >= 0; i--) {
+        if (samples[i].t < winStart) break;
+        sumDt += samples[i].dt;
+        if (samples[i].dt > maxDt) maxDt = samples[i].dt;
+        count++;
+      }
+      const avgFps = sumDt > 0 ? count / sumDt : 0;
+      const minFps5s = maxDt > 0 ? 1 / maxDt : Infinity;
+      const avgMs = count > 0 ? (sumDt / count) * 1000 : 0;
+      const p = PERF._passStats;
+      const fmt = (st) => (st.calls + '/' + st.tris);
+      const flags1 = 'shadows=' + (PERF.shadowsOncePerFrame ? 'ON' : 'off') +
+                     ' frz=' + (PERF.freezeStatic ? 'Y' : 'N') +
+                     ' rt=' + PERF.secondaryViewEvery +
+                     ' mrg=' + (PERF.mergeWorkstations ? 'Y' : 'N');
+      const flags2 = 'pr=' + renderer.getPixelRatio().toFixed(2) +
+                     ' dyn=' + (PERF.dynamicResolution ? 'Y' : 'N') +
+                     ' preset=' + PERF.preset;
+      PERF._contentEl.textContent =
+        'FPS    ' + currentFps.toFixed(1) + '\n' +
+        'avg5s  ' + avgFps.toFixed(1) + '\n' +
+        'min5s  ' + (isFinite(minFps5s) ? minFps5s.toFixed(1) : '—') + '\n' +
+        'ms avg ' + avgMs.toFixed(2) + '\n' +
+        '─────\n' +
+        'main   ' + fmt(p.main) + '\n' +
+        'minim  ' + fmt(p.minimap) + '\n' +
+        'corte  ' + fmt(p.corte) + '\n' +
+        '─────\n' +
+        'people ' + people.length + '  focos ' + fires.filter(f => f.active).length + '\n' +
+        flags1 + '\n' + flags2;
+    }
+    function updatePerf(nowMs) {
+      if (!PERF.showFps) { PERF._lastFrameMs = 0; return; }
+      if (PERF._lastFrameMs === 0) { PERF._lastFrameMs = nowMs; return; }
+      const dt = (nowMs - PERF._lastFrameMs) / 1000;
+      PERF._lastFrameMs = nowMs;
+      if (dt <= 0.001 || dt > 5) return;
+      const samples = PERF._samples;
+      while (samples.length > 0 && nowMs - samples[0].t > 5000) samples.shift();
+      samples.push({ t: nowMs, dt });
+      const fps = 1 / dt;
+      if (fps < PERF._allTimeMinFps) PERF._allTimeMinFps = fps;
+      PERF._allTimeSumFps += fps;
+      PERF._allTimeFrameCount++;
+      if (nowMs - PERF._lastDOMUpdate < 500) return;
+      PERF._lastDOMUpdate = nowMs;
+      updatePerfDisplay(nowMs);
+      if (PERF.dynamicResolution) updateDynamicResolution(nowMs, samples);
+    }
+    function updateDynamicResolution(nowMs, samples) {
+      if (nowMs - PERF._lastDynCheck < 500) return;
+      PERF._lastDynCheck = nowMs;
+      if (nowMs - PERF._lastDynChange < 2000) return;
+      let sumDt3 = 0, count3 = 0;
+      for (let i = samples.length - 1; i >= 0; i--) {
+        if (samples[i].t < nowMs - 3000) break;
+        sumDt3 += samples[i].dt; count3++;
+      }
+      let sumDt5 = 0, count5 = 0;
+      for (let i = samples.length - 1; i >= 0; i--) {
+        if (samples[i].t < nowMs - 5000) break;
+        sumDt5 += samples[i].dt; count5++;
+      }
+      const avg3 = sumDt3 > 0 ? count3 / sumDt3 : 0;
+      const avg5 = sumDt5 > 0 ? count5 / sumDt5 : 0;
+      const cur = renderer.getPixelRatio();
+      const cap = _effectivePixelRatioCap();
+      if (avg3 > 0 && avg3 < 45 && cur > 0.75) {
+        if (!PERF._lowFpsStart) PERF._lowFpsStart = nowMs;
+        if (nowMs - PERF._lowFpsStart >= 3000) {
+          applyPixelRatio(Math.max(0.75, cur - 0.25));
+          PERF._lowFpsStart = 0; PERF._lastDynChange = nowMs;
+        }
+      } else PERF._lowFpsStart = 0;
+      if (avg5 > 58 && cur < cap) {
+        if (!PERF._highFpsStart) PERF._highFpsStart = nowMs;
+        if (nowMs - PERF._highFpsStart >= 5000) {
+          applyPixelRatio(Math.min(cap, cur + 0.25));
+          PERF._highFpsStart = 0; PERF._lastDynChange = nowMs;
+        }
+      } else PERF._highFpsStart = 0;
+    }
+    function applyPixelRatio(newRatio) {
+      renderer.setPixelRatio(newRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      invalidateRTs();
+    }
+    function resetPerfStats() {
+      PERF._samples.length = 0;
+      PERF._allTimeMinFps = Infinity; PERF._allTimeSumFps = 0; PERF._allTimeFrameCount = 0;
+      PERF._lastDOMUpdate = 0;
+    }
+    function reportPerf() {
+      const n = PERF._allTimeFrameCount;
+      if (n === 0) { console.log('[PERF] sin muestras'); return; }
+      const avg = PERF._allTimeSumFps / n;
+      const min = isFinite(PERF._allTimeMinFps) ? PERF._allTimeMinFps : 0;
+      const line = 'PERF avg=' + avg.toFixed(2) + ' fps, min=' + min.toFixed(2) + ' fps, frames=' + n + ' (preset=' + PERF.preset + ')';
+      console.log(line);
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(line).catch(() => {});
+    }
+
+    const btnVerFps = document.getElementById('btn-ver-fps');
+    function setFpsPanelVisible(visible) {
+      PERF.showFps = visible;
+      if (PERF._panelEl) PERF._panelEl.style.display = visible ? 'block' : 'none';
+      if (visible) PERF._lastDOMUpdate = 0;
+      if (btnVerFps) btnVerFps.textContent = visible ? 'Ocultar FPS' : 'Ver FPS';
+    }
+    if (btnVerFps) btnVerFps.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setFpsPanelVisible(!PERF.showFps);
+      if (IS_MOBILE) toggleMenu(false);
+    });
+
+    const mobBtnMinimap = document.getElementById('mob-btn-minimap');
+    const mobBtnCorte = document.getElementById('mob-btn-corte');
+    if (mobBtnMinimap) mobBtnMinimap.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setMinimapVisible(PERF.diag_hideMinimap);
+    });
+    if (mobBtnCorte) mobBtnCorte.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCorteVisible(PERF.diag_hideCorte);
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === 'p') { setFpsPanelVisible(!PERF.showFps); e.preventDefault(); }
+      else if (k === 'o') { resetPerfStats(); e.preventDefault(); }
+      else if (k === 'l') { reportPerf(); e.preventDefault(); }
+      else if (k === '1') { setMinimapVisible(PERF.diag_hideMinimap); e.preventDefault(); }
+      else if (k === '2') { setCorteVisible(PERF.diag_hideCorte); e.preventDefault(); }
+      else if (k === '3') { PERF.diag_hideShadows = !PERF.diag_hideShadows; e.preventDefault(); }
+    });
+
+    if (IS_MOBILE) {
+      setMinimapVisible(false);
+      setCorteVisible(false);
+    } else {
+      setMinimapVisible(true);
+      setCorteVisible(true);
+    }
+
     function animate() {
       requestAnimationFrame(animate);
       const delta = Math.min(clock.getDelta(), 0.1);
       const time = clock.elapsedTime;
-
       if (simStarted && !presentationOpen) {
         updateSimClock(delta);
         globalFireEmitScale = Math.min(1, 20 / Math.max(fires.length, 1));
         for (let i = 0; i < fires.length; i++) fires[i].update(time, delta);
+        if (PERF.limitFireLights) updateFireLightPool();
         updateServerFireDetection(delta);
         updateFireSpread(delta);
         updateExplosionBursts(delta);
@@ -4165,16 +4412,27 @@
         updateGlassShards(delta);
         updateDoors(delta);
         updateWindows(delta);
-
         if (frameCounter % HEATMAP_EVERY === 0) { computeDensity(); updateHeatmap(); }
         frameCounter++;
         if (roomFrameCounter % ROOM_STATUS_EVERY === 0) updateRoomStatus();
         roomFrameCounter++;
       }
-
       if (!povPerson) controls.update();
-      renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+      renderer.info.reset();
+      renderer.setRenderTarget(null);
       renderer.setScissorTest(false);
+      renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+      renderer.setScissor(0, 0, window.innerWidth, window.innerHeight);
+
+      if (!PERF.diag_hideShadows) {
+        if (PERF.shadowsOncePerFrame) {
+          if (PERF.shadowUpdateEvery <= 1 || (frameCounter % PERF.shadowUpdateEvery) === 0) {
+            renderer.shadowMap.needsUpdate = true;
+          }
+        } else {
+          renderer.shadowMap.needsUpdate = true;
+        }
+      }
 
       if (povPerson) {
         const capturedPov = povPerson;
@@ -4182,7 +4440,7 @@
         const healthVis = capturedPov.healthBar ? capturedPov.healthBar.visible : false;
         const alertVis = capturedPov.alertMarker ? capturedPov.alertMarker.visible : false;
         const markerVis = capturedPov.deathMarker ? capturedPov.deathMarker.visible : false;
-        if (!povThirdPerson) capturedPov.body.visible = false;
+        capturedPov.body.visible = false;
         if (capturedPov.healthBar) capturedPov.healthBar.visible = false;
         if (capturedPov.alertMarker) capturedPov.alertMarker.visible = false;
         if (capturedPov.deathMarker) capturedPov.deathMarker.visible = false;
@@ -4196,6 +4454,8 @@
       } else {
         renderer.render(scene, camera);
       }
+      PERF._passStats.main.calls = renderer.info.render.calls;
+      PERF._passStats.main.tris  = renderer.info.render.triangles;
 
       if (povPerson) {
         povMarkerGroup.position.set(povPerson.x, 0.4, povPerson.z);
@@ -4206,113 +4466,200 @@
 
       const marco = document.getElementById('minimapa-marco');
       const rect = marco.getBoundingClientRect();
-      if (rect.width > 4 && rect.height > 4) {
+      if (rect.width > 4 && rect.height > 4 && !PERF.diag_hideMinimap) {
+        renderer.info.reset();
         const mapY = window.innerHeight - rect.bottom;
-        renderer.setViewport(rect.left, mapY, rect.width, rect.height);
-        renderer.setScissor(rect.left, mapY, rect.width, rect.height);
-        renderer.setScissorTest(true);
-        const bgOriginal = scene.background;
-        scene.background = new THREE.Color(0x1a1a1a);
-
-        let povHealthVis = null;
-        if (povPerson && povPerson.healthBar) {
-          povHealthVis = povPerson.healthBar.visible;
-          povPerson.healthBar.visible = false;
+        if (PERF.useSecondaryRT) {
+          const sizeChanged = ensureRT(_minimapRT, rect.width, rect.height);
+          const shouldRender = (PERF.secondaryViewEvery <= 1) || sizeChanged || (_minimapRT.lastFrame < 0) || ((frameCounter - _minimapRT.lastFrame) >= PERF.secondaryViewEvery);
+          if (shouldRender) {
+            const savedBg = scene.background;
+            scene.background = new THREE.Color(0x1a1a1a);
+            const savedSmokeOpacities = [];
+            for (let fi = 0; fi < fires.length; fi++) {
+              const sm = fires[fi].smoke;
+              if (sm && sm.material) { savedSmokeOpacities.push(sm.material.opacity); sm.material.opacity = SMOKE_MINIMAP_OPACITY; }
+              else savedSmokeOpacities.push(null);
+            }
+            let povHealthVis = null;
+            if (povPerson && povPerson.healthBar) {
+              povHealthVis = povPerson.healthBar.visible;
+              povPerson.healthBar.visible = false;
+            }
+            renderer.setRenderTarget(_minimapRT.target);
+            renderer.setViewport(0, 0, _minimapRT.w, _minimapRT.h);
+            renderer.setScissorTest(false);
+            renderer.render(scene, mapCamera);
+            renderer.setRenderTarget(null);
+            for (let fi = 0; fi < fires.length; fi++) {
+              const sm = fires[fi].smoke;
+              if (sm && sm.material && savedSmokeOpacities[fi] !== null) sm.material.opacity = savedSmokeOpacities[fi];
+            }
+            if (povHealthVis !== null) povPerson.healthBar.visible = povHealthVis;
+            scene.background = savedBg;
+            _minimapRT.lastFrame = frameCounter;
+          }
+          _quadMatMinimap.map = _minimapRT.target.texture;
+          _quadMatMinimap.needsUpdate = true;
+          renderer.setViewport(rect.left, mapY, rect.width, rect.height);
+          renderer.setScissor(rect.left, mapY, rect.width, rect.height);
+          renderer.setScissorTest(true);
+          renderer.render(_quadSceneMinimap, _quadCamera);
+          renderer.setScissorTest(false);
+        } else {
+          renderer.setViewport(rect.left, mapY, rect.width, rect.height);
+          renderer.setScissor(rect.left, mapY, rect.width, rect.height);
+          renderer.setScissorTest(true);
+          const savedBg = scene.background;
+          scene.background = new THREE.Color(0x1a1a1a);
+          let povHealthVis = null;
+          if (povPerson && povPerson.healthBar) { povHealthVis = povPerson.healthBar.visible; povPerson.healthBar.visible = false; }
+          const savedSmokeOpacities = [];
+          for (let fi = 0; fi < fires.length; fi++) {
+            const sm = fires[fi].smoke;
+            if (sm && sm.material) { savedSmokeOpacities.push(sm.material.opacity); sm.material.opacity = SMOKE_MINIMAP_OPACITY; }
+            else savedSmokeOpacities.push(null);
+          }
+          renderer.render(scene, mapCamera);
+          for (let fi = 0; fi < fires.length; fi++) {
+            const sm = fires[fi].smoke;
+            if (sm && sm.material && savedSmokeOpacities[fi] !== null) sm.material.opacity = savedSmokeOpacities[fi];
+          }
+          if (povHealthVis !== null) povPerson.healthBar.visible = povHealthVis;
+          scene.background = savedBg;
+          renderer.setScissorTest(false);
         }
-
-        const savedSmokeOpacities = [];
-        for (let fi = 0; fi < fires.length; fi++) {
-          const sm = fires[fi].smoke;
-          if (sm && sm.material) { savedSmokeOpacities.push(sm.material.opacity); sm.material.opacity = SMOKE_MINIMAP_OPACITY; }
-          else savedSmokeOpacities.push(null);
-        }
-
-        renderer.render(scene, mapCamera);
-
-        for (let fi = 0; fi < fires.length; fi++) {
-          const sm = fires[fi].smoke;
-          if (sm && sm.material && savedSmokeOpacities[fi] !== null) sm.material.opacity = savedSmokeOpacities[fi];
-        }
-
-        if (povHealthVis !== null) povPerson.healthBar.visible = povHealthVis;
-        scene.background = bgOriginal;
-        renderer.setScissorTest(false);
+        PERF._passStats.minimap.calls = renderer.info.render.calls;
+        PERF._passStats.minimap.tris  = renderer.info.render.triangles;
+      } else {
+        PERF._passStats.minimap.calls = 0;
+        PERF._passStats.minimap.tris  = 0;
       }
 
       const marcoCorte = document.getElementById('corte-marco');
       if (marcoCorte) {
         const rectCorte = marcoCorte.getBoundingClientRect();
-        if (rectCorte.width > 4 && rectCorte.height > 4) {
+        if (rectCorte.width > 4 && rectCorte.height > 4 && !PERF.diag_hideCorte) {
+          renderer.info.reset();
           const corteY = window.innerHeight - rectCorte.bottom;
-          renderer.setViewport(rectCorte.left, corteY, rectCorte.width, rectCorte.height);
-          renderer.setScissor(rectCorte.left, corteY, rectCorte.width, rectCorte.height);
-          renderer.setScissorTest(true);
-          renderer.clippingPlanes = [cutPlane];
-          if (modelMesh) modelMesh.material = cutModelMaterial;
-          for (let di = 0; di < doorsList.length; di++) { if (doorsList[di].pivotGroup) doorsList[di].pivotGroup.visible = false; }
-          for (let wi = 0; wi < windowsList.length; wi++) { if (windowsList[wi].group) windowsList[wi].group.visible = false; }
-          for (let si = 0; si < glassShards.length; si++) { if (glassShards[si].mesh) glassShards[si].mesh.visible = false; }
-          const savedFlameColors = [];
-          const savedSmokeSizes = [];
-          for (let fi = 0; fi < fires.length; fi++) {
-            const sm = fires[fi].smoke;
-            if (sm && sm.material) {
-              sm.material.opacity = 0.70;
-              sm.material.color.setHex(CUT_SMOKE_COLOR);
-              savedSmokeSizes.push(sm.material.size);
-              sm.material.size = sm.material.size * CUT_SMOKE_SIZE_FACTOR;
-            } else savedSmokeSizes.push(null);
-            const fl = fires[fi].flames;
-            if (fl && fl.material) {
-              savedFlameColors.push(fl.material.color.getHex());
-              fl.material.color.setHex(CUT_FLAME_COLOR);
-            } else savedFlameColors.push(null);
-          }
-          for (let i = 0; i < cutEdgeObjects.length; i++) cutEdgeObjects[i].visible = true;
-          const bgOriginal = scene.background;
-          scene.background = new THREE.Color(0x161a22);
-          renderer.render(scene, cutCamera);
-          scene.background = bgOriginal;
-          for (let i = 0; i < cutEdgeObjects.length; i++) cutEdgeObjects[i].visible = false;
-          for (let di = 0; di < doorsList.length; di++) { if (doorsList[di].pivotGroup && !doorsList[di].broken) doorsList[di].pivotGroup.visible = true; }
-          for (let wi = 0; wi < windowsList.length; wi++) { if (windowsList[wi].group) windowsList[wi].group.visible = true; }
-          for (let si = 0; si < glassShards.length; si++) { if (glassShards[si].mesh) glassShards[si].mesh.visible = true; }
-          if (modelMesh && origModelMat) modelMesh.material = origModelMat;
-          renderer.clippingPlanes = [];
-          for (let fi = 0; fi < fires.length; fi++) {
-            const sm = fires[fi].smoke;
-            if (sm && sm.material) {
-              sm.material.opacity = SMOKE_MAIN_OPACITY;
-              sm.material.color.setHex(0x1a1a1a);
-              if (savedSmokeSizes[fi] !== null && savedSmokeSizes[fi] !== undefined) sm.material.size = savedSmokeSizes[fi];
+          if (PERF.useSecondaryRT) {
+            const sizeChanged = ensureRT(_corteRT, rectCorte.width, rectCorte.height);
+            const shouldRender = (PERF.secondaryViewEvery <= 1) || sizeChanged || (_corteRT.lastFrame < 0) || ((frameCounter - _corteRT.lastFrame) >= PERF.secondaryViewEvery);
+            if (shouldRender) {
+              renderer.setRenderTarget(_corteRT.target);
+              renderer.setViewport(0, 0, _corteRT.w, _corteRT.h);
+              renderer.setScissorTest(false);
+              renderer.clippingPlanes = [cutPlane];
+              if (modelMesh) modelMesh.material = cutModelMaterial;
+              for (let di = 0; di < doorsList.length; di++) { if (doorsList[di].pivotGroup) doorsList[di].pivotGroup.visible = false; }
+              for (let wi = 0; wi < windowsList.length; wi++) { if (windowsList[wi].group) windowsList[wi].group.visible = false; }
+              for (let si = 0; si < glassShards.length; si++) { if (glassShards[si].mesh) glassShards[si].mesh.visible = false; }
+              const savedFlameColors = [], savedSmokeSizes = [];
+              for (let fi = 0; fi < fires.length; fi++) {
+                const sm = fires[fi].smoke;
+                if (sm && sm.material) {
+                  sm.material.opacity = 0.70;
+                  sm.material.color.setHex(CUT_SMOKE_COLOR);
+                  savedSmokeSizes.push(sm.material.size);
+                  sm.material.size = sm.material.size * CUT_SMOKE_SIZE_FACTOR;
+                } else savedSmokeSizes.push(null);
+                const fl = fires[fi].flames;
+                if (fl && fl.material) { savedFlameColors.push(fl.material.color.getHex()); fl.material.color.setHex(CUT_FLAME_COLOR); }
+                else savedFlameColors.push(null);
+              }
+              for (let i = 0; i < cutEdgeObjects.length; i++) cutEdgeObjects[i].visible = true;
+              const savedBg = scene.background;
+              scene.background = new THREE.Color(0x161a22);
+              renderer.render(scene, cutCamera);
+              scene.background = savedBg;
+              for (let i = 0; i < cutEdgeObjects.length; i++) cutEdgeObjects[i].visible = false;
+              for (let di = 0; di < doorsList.length; di++) { if (doorsList[di].pivotGroup && !doorsList[di].broken) doorsList[di].pivotGroup.visible = true; }
+              for (let wi = 0; wi < windowsList.length; wi++) { if (windowsList[wi].group) windowsList[wi].group.visible = true; }
+              for (let si = 0; si < glassShards.length; si++) { if (glassShards[si].mesh) glassShards[si].mesh.visible = true; }
+              if (modelMesh && origModelMat) modelMesh.material = origModelMat;
+              renderer.clippingPlanes = [];
+              for (let fi = 0; fi < fires.length; fi++) {
+                const sm = fires[fi].smoke;
+                if (sm && sm.material) {
+                  sm.material.opacity = SMOKE_MAIN_OPACITY;
+                  sm.material.color.setHex(0x1a1a1a);
+                  if (savedSmokeSizes[fi] !== null && savedSmokeSizes[fi] !== undefined) sm.material.size = savedSmokeSizes[fi];
+                }
+                const fl = fires[fi].flames;
+                if (fl && fl.material && savedFlameColors[fi] !== null && savedFlameColors[fi] !== undefined) fl.material.color.setHex(savedFlameColors[fi]);
+              }
+              renderer.setRenderTarget(null);
+              _corteRT.lastFrame = frameCounter;
             }
-            const fl = fires[fi].flames;
-            if (fl && fl.material && savedFlameColors[fi] !== null && savedFlameColors[fi] !== undefined) {
-              fl.material.color.setHex(savedFlameColors[fi]);
+            _quadMatCorte.map = _corteRT.target.texture;
+            _quadMatCorte.needsUpdate = true;
+            renderer.setViewport(rectCorte.left, corteY, rectCorte.width, rectCorte.height);
+            renderer.setScissor(rectCorte.left, corteY, rectCorte.width, rectCorte.height);
+            renderer.setScissorTest(true);
+            renderer.render(_quadSceneCorte, _quadCamera);
+            renderer.setScissorTest(false);
+          } else {
+            renderer.setViewport(rectCorte.left, corteY, rectCorte.width, rectCorte.height);
+            renderer.setScissor(rectCorte.left, corteY, rectCorte.width, rectCorte.height);
+            renderer.setScissorTest(true);
+            renderer.clippingPlanes = [cutPlane];
+            if (modelMesh) modelMesh.material = cutModelMaterial;
+            for (let di = 0; di < doorsList.length; di++) { if (doorsList[di].pivotGroup) doorsList[di].pivotGroup.visible = false; }
+            for (let wi = 0; wi < windowsList.length; wi++) { if (windowsList[wi].group) windowsList[wi].group.visible = false; }
+            for (let si = 0; si < glassShards.length; si++) { if (glassShards[si].mesh) glassShards[si].mesh.visible = false; }
+            const savedFlameColors = [], savedSmokeSizes = [];
+            for (let fi = 0; fi < fires.length; fi++) {
+              const sm = fires[fi].smoke;
+              if (sm && sm.material) {
+                sm.material.opacity = 0.70;
+                sm.material.color.setHex(CUT_SMOKE_COLOR);
+                savedSmokeSizes.push(sm.material.size);
+                sm.material.size = sm.material.size * CUT_SMOKE_SIZE_FACTOR;
+              } else savedSmokeSizes.push(null);
+              const fl = fires[fi].flames;
+              if (fl && fl.material) { savedFlameColors.push(fl.material.color.getHex()); fl.material.color.setHex(CUT_FLAME_COLOR); }
+              else savedFlameColors.push(null);
             }
+            for (let i = 0; i < cutEdgeObjects.length; i++) cutEdgeObjects[i].visible = true;
+            const savedBg = scene.background;
+            scene.background = new THREE.Color(0x161a22);
+            renderer.render(scene, cutCamera);
+            scene.background = savedBg;
+            for (let i = 0; i < cutEdgeObjects.length; i++) cutEdgeObjects[i].visible = false;
+            for (let di = 0; di < doorsList.length; di++) { if (doorsList[di].pivotGroup && !doorsList[di].broken) doorsList[di].pivotGroup.visible = true; }
+            for (let wi = 0; wi < windowsList.length; wi++) { if (windowsList[wi].group) windowsList[wi].group.visible = true; }
+            for (let si = 0; si < glassShards.length; si++) { if (glassShards[si].mesh) glassShards[si].mesh.visible = true; }
+            if (modelMesh && origModelMat) modelMesh.material = origModelMat;
+            renderer.clippingPlanes = [];
+            for (let fi = 0; fi < fires.length; fi++) {
+              const sm = fires[fi].smoke;
+              if (sm && sm.material) {
+                sm.material.opacity = SMOKE_MAIN_OPACITY;
+                sm.material.color.setHex(0x1a1a1a);
+                if (savedSmokeSizes[fi] !== null && savedSmokeSizes[fi] !== undefined) sm.material.size = savedSmokeSizes[fi];
+              }
+              const fl = fires[fi].flames;
+              if (fl && fl.material && savedFlameColors[fi] !== null && savedFlameColors[fi] !== undefined) fl.material.color.setHex(savedFlameColors[fi]);
+            }
+            renderer.setScissorTest(false);
           }
-          renderer.setScissorTest(false);
+          PERF._passStats.corte.calls = renderer.info.render.calls;
+          PERF._passStats.corte.tris  = renderer.info.render.triangles;
+        } else {
+          PERF._passStats.corte.calls = 0;
+          PERF._passStats.corte.tris  = 0;
         }
       }
+      if (PERF.showFps) updatePerf(performance.now());
     }
+    if (PERF.freezeStatic) freezeStaticScene();
+    createPerfPanel();
     animate();
-
     applyCutView(0);
 
-    /* ═══════════════════════════════════════════════════════════════════════
-       PRES — mini-animaciones de la portada.
-       Todo el contenido vive en una IIFE para no colisionar con globals del
-       script principal (clamp, people, workstations, doorsList, createPerson,
-       etc.). Solo se usa `sc`/`cam` locales y `buildScene` para que los
-       constructores escriban en la mini-escena.
-       ═══════════════════════════════════════════════════════════════════════ */
     const PRES = (function () {
       let buildScene = null;
       function playDoorSound() {}
-
-      /* ═══════════════════════════════════════════════════════════════
-         UTILIDADES (copia de ejemplo08 353-371)
-         ═══════════════════════════════════════════════════════════════ */
       function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
       function gaussianRandom() {
         let u = 0, v = 0;
@@ -4320,7 +4667,6 @@
         while (v === 0) v = Math.random();
         return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
       }
-
       const NOMBRES_MASCULINOS = ['Juan','Martín','Lucas','Santiago','Matías','Nicolás','Franco','Bruno','Tomás','Facundo','Joaquín','Agustín','Gonzalo','Federico','Diego','Sebastián','Alejandro','Marcelo','Pablo','Fernando','Gabriel','Daniel','Andrés','Emiliano','Ramiro','Leandro','Javier','Maximiliano','Rodrigo','Gastón','Ezequiel','Lautaro','Thiago','Benjamín','Bautista','Lorenzo'];
       const NOMBRES_FEMENINOS = ['Sofía','Valentina','Martina','Camila','Micaela','Florencia','Lucía','Julieta','Agustina','Rocío','Paula','Carolina','Milagros','Catalina','Belén','Malena','Victoria','Renata','Delfina','Mía','Lara','Emma','Guillermina','Jimena','Lorena','Mariana','Lucila','Josefina','Emilia','Abril','Bianca','Pilar','Constanza','Trinidad','Morena','Olivia'];
       const APELLIDOS = ['González','Rodríguez','Fernández','López','Martínez','García','Pérez','Álvarez','Romero','Díaz','Sosa','Torres','Ruiz','Benítez','Acosta','Medina','Herrera','Suárez','Giménez','Vargas','Molina','Castro','Ríos','Silva','Rojas','Luna','Juárez','Cabrera','Aguirre','Pereyra'];
@@ -4332,30 +4678,23 @@
         const last = APELLIDOS[Math.floor(Math.random() * APELLIDOS.length)];
         return first + ' ' + last;
       }
-
-      /* ═══════════════════════════════════════════════════════════════
-         WORKSTATION / PUERTA / MARCADORES / PERSONA
-         (copia de ejemplo08 457-631, sin ESCENA/LUCES/PISO)
-         ═══════════════════════════════════════════════════════════════ */
       const workstations = [];
       function createWorkstation(x, z, rotationY = 0) {
         const group = new THREE.Group();
         const deskMat = new THREE.MeshStandardMaterial({ color: 0x2b303a, roughness: 0.5, metalness: 0.2 });
         const desk = new THREE.Mesh(new THREE.BoxGeometry(0.70, 0.05, 0.48), deskMat);
-        desk.position.set(0, 0.7, 0); desk.castShadow = true; desk.receiveShadow = true;
-        group.add(desk);
+        desk.position.set(0, 0.7, 0); desk.castShadow = true; desk.receiveShadow = true; group.add(desk);
         const legMat = new THREE.MeshStandardMaterial({ color: 0x111115, metalness: 0.8, roughness: 0.3 });
         const legGeo = new THREE.BoxGeometry(0.05, 0.7, 0.05);
         [[-0.30,-0.20],[0.30,-0.20],[-0.30,0.20],[0.30,0.20]].forEach(([lx, lz]) => {
           const leg = new THREE.Mesh(legGeo, legMat);
-          leg.position.set(lx, 0.35, lz); leg.castShadow = true;
-          group.add(leg);
+          leg.position.set(lx, 0.35, lz); leg.castShadow = false; group.add(leg);
         });
         const chairMat = new THREE.MeshStandardMaterial({ color: 0x1e2229, roughness: 0.8 });
         const seat = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.05, 0.36), chairMat);
-        seat.position.set(0, 0.45, 0.35); seat.castShadow = true; group.add(seat);
+        seat.position.set(0, 0.45, 0.35); seat.castShadow = false; group.add(seat);
         const back = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.35, 0.05), chairMat);
-        back.position.set(0, 0.65, 0.51); back.castShadow = true; group.add(back);
+        back.position.set(0, 0.65, 0.51); back.castShadow = false; group.add(back);
         const baseLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.42, 8), legMat);
         baseLeg.position.set(0, 0.21, 0.35); group.add(baseLeg);
         const monMat = new THREE.MeshStandardMaterial({ color: 0x0f1115, roughness: 0.4 });
@@ -4365,7 +4704,7 @@
         monStand.position.set(0, 0.83, -0.12); group.add(monStand);
         const screenMat = new THREE.MeshStandardMaterial({ color: 0x00d2ff, emissive: 0x0055aa, emissiveIntensity: 0.7, roughness: 0.2 });
         const screen = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.28, 0.025), screenMat);
-        screen.position.set(0, 0.94, -0.11); screen.castShadow = true; group.add(screen);
+        screen.position.set(0, 0.94, -0.11); screen.castShadow = false; group.add(screen);
         const kbMat = new THREE.MeshStandardMaterial({ color: 0x181a20, roughness: 0.6 });
         const kb = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.015, 0.12), kbMat);
         kb.position.set(0, 0.73, 0.08); group.add(kb);
@@ -4379,7 +4718,6 @@
         workstations.push(ws);
         return ws;
       }
-
       const doorsList = [];
       const PERSON_DOOR_OPEN_DELAY = 0.35;
       function createDoor(cfg) {
@@ -4394,8 +4732,7 @@
         const frameDepth = Math.max(0.10, cfg.wallThick * 0.6);
         function addFrameBar(w, h, d, px, py, pz) {
           const bar = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat);
-          bar.position.set(px, py, pz); bar.castShadow = true; bar.receiveShadow = true;
-          frameGroup.add(bar);
+          bar.position.set(px, py, pz); bar.castShadow = false; bar.receiveShadow = true; frameGroup.add(bar);
         }
         if (cfg.axis === 'Z') {
           addFrameBar(frameDepth, frameTrim, cfg.width, cfg.centerX, cfg.height - frameTrim/2, cfg.centerZ);
@@ -4407,12 +4744,9 @@
           addFrameBar(frameTrim, cfg.height, frameDepth, cfg.maxX - frameTrim/2, cfg.height/2, cfg.centerZ);
         }
         if (buildScene) buildScene.add(frameGroup);
-
         const pivotGroup = new THREE.Group();
         pivotGroup.position.set(cfg.hingeX, 0, cfg.hingeZ);
-        const initialAngle = 0;
-        pivotGroup.rotation.y = initialAngle;
-
+        pivotGroup.rotation.y = 0;
         let doorGeo;
         if (cfg.axis === 'Z') doorGeo = new THREE.BoxGeometry(doorThick, doorHeight, doorWidth);
         else doorGeo = new THREE.BoxGeometry(doorWidth, doorHeight, doorThick);
@@ -4421,116 +4755,61 @@
         if (cfg.axis === 'Z') doorMesh.position.set(0, doorHeight/2, doorWidth/2);
         else doorMesh.position.set(doorWidth/2, doorHeight/2, 0);
         pivotGroup.add(doorMesh);
-
-        const handleY = 1.0;
-        const handleLen = 0.11;
-        const isZOnly = (cfg.axis === 'Z');
-        const hLocalPos = isZOnly ? new THREE.Vector3(0, handleY, doorWidth - 0.08) : new THREE.Vector3(doorWidth - 0.08, handleY, 0);
-        function createHandle(side) {
-          const hGroup = new THREE.Group();
-          const roseGeo = isZOnly ? new THREE.BoxGeometry(0.01, 0.14, 0.04) : new THREE.BoxGeometry(0.04, 0.14, 0.01);
-          hGroup.add(new THREE.Mesh(roseGeo, handleMat));
-          const leverGeo = isZOnly ? new THREE.BoxGeometry(0.014, 0.014, handleLen) : new THREE.BoxGeometry(handleLen, 0.014, 0.014);
-          const lever = new THREE.Mesh(leverGeo, handleMat);
-          lever.position.set(
-            isZOnly ? side * (doorThick/2 + 0.025) : -handleLen/3,
-            0,
-            isZOnly ? -handleLen/3 : side * (doorThick/2 + 0.025)
-          );
-          hGroup.add(lever);
-          hGroup.position.set(
-            hLocalPos.x + (isZOnly ? side * (doorThick/2 + 0.005) : 0),
-            hLocalPos.y,
-            hLocalPos.z + (isZOnly ? 0 : side * (doorThick/2 + 0.005))
-          );
-          return hGroup;
-        }
-        pivotGroup.add(createHandle(1));
-        pivotGroup.add(createHandle(-1));
         if (buildScene) buildScene.add(pivotGroup);
-
         const doorObj = {
-          id: cfg.id, axis: cfg.axis, isDiagonal: !!cfg.isDiagonal,
-          baseAngle: initialAngle,
+          id: cfg.id, axis: cfg.axis, isDiagonal: !!cfg.isDiagonal, baseAngle: 0,
           pivotGroup, doorMesh, width: cfg.width, height: cfg.height,
           centerX: cfg.centerX, centerZ: cfg.centerZ,
           minX: cfg.minX, maxX: cfg.maxX, minZ: cfg.minZ, maxZ: cfg.maxZ,
           hingeX: cfg.hingeX, hingeZ: cfg.hingeZ, openAngle: cfg.openAngle,
-          currentAngle: initialAngle, targetAngle: initialAngle,
+          currentAngle: 0, targetAngle: 0,
           isOpen: false, personOpening: false, personOpeningTimer: 0,
           toggle: function() {
-            if (this.isOpen) {
-              this.isOpen = false; this.personOpening = false; this.personOpeningTimer = 0;
-              this.targetAngle = this.baseAngle; playDoorSound(false);
-            } else {
-              this.isOpen = true; this.personOpening = false; this.personOpeningTimer = 0;
-              this.targetAngle = this.baseAngle + this.openAngle; playDoorSound(true);
-            }
+            if (this.isOpen) { this.isOpen = false; this.targetAngle = this.baseAngle; }
+            else { this.isOpen = true; this.targetAngle = this.baseAngle + this.openAngle; }
           },
-          requestOpenByPerson: function() {
-            if (this.isOpen || this.personOpening) return;
-            this.personOpening = true;
-            this.personOpeningTimer = PERSON_DOOR_OPEN_DELAY;
-          }
+          requestOpenByPerson: function() { if (this.isOpen || this.personOpening) return; this.personOpening = true; this.personOpeningTimer = PERSON_DOOR_OPEN_DELAY; }
         };
         doorsList.push(doorObj);
         return doorObj;
       }
-
       function updateDoors(delta, list = doorsList) {
         for (let i = 0; i < list.length; i++) {
           const d = list[i];
           if (d.personOpening) {
             d.personOpeningTimer -= delta;
-            if (d.personOpeningTimer <= 0) {
-              d.personOpening = false; d.personOpeningTimer = 0;
-              d.isOpen = true;
-              d.targetAngle = d.baseAngle + d.openAngle;
-              playDoorSound(true);
-            }
+            if (d.personOpeningTimer <= 0) { d.personOpening = false; d.isOpen = true; d.targetAngle = d.baseAngle + d.openAngle; }
           }
           if (Math.abs(d.pivotGroup.rotation.y - d.targetAngle) > 0.001) {
             d.pivotGroup.rotation.y = THREE.MathUtils.lerp(d.pivotGroup.rotation.y, d.targetAngle, 0.22);
-          } else {
-            d.pivotGroup.rotation.y = d.targetAngle;
-          }
+          } else d.pivotGroup.rotation.y = d.targetAngle;
         }
       }
-
       let _deathMarkerTexture = null;
       function getDeathMarkerTexture() {
         if (_deathMarkerTexture) return _deathMarkerTexture;
-        const canvas = document.createElement('canvas');
-        canvas.width = 128; canvas.height = 128;
-        const ctx = canvas.getContext('2d');
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 28; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(30, 30); ctx.lineTo(98, 98); ctx.moveTo(98, 30); ctx.lineTo(30, 98); ctx.stroke();
-        ctx.strokeStyle = '#ff0000'; ctx.lineWidth = 18; ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(30, 30); ctx.lineTo(98, 98); ctx.moveTo(98, 30); ctx.lineTo(30, 98); ctx.stroke();
-        const tex = new THREE.CanvasTexture(canvas);
-        tex.anisotropy = 8; tex.needsUpdate = true;
-        _deathMarkerTexture = tex;
-        return tex;
+        const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+        const x = c.getContext('2d');
+        x.strokeStyle = '#ffffff'; x.lineWidth = 28; x.lineCap = 'round';
+        x.beginPath(); x.moveTo(30, 30); x.lineTo(98, 98); x.moveTo(98, 30); x.lineTo(30, 98); x.stroke();
+        x.strokeStyle = '#ff0000'; x.lineWidth = 18; x.lineCap = 'round';
+        x.beginPath(); x.moveTo(30, 30); x.lineTo(98, 98); x.moveTo(98, 30); x.lineTo(30, 98); x.stroke();
+        _deathMarkerTexture = new THREE.CanvasTexture(c); _deathMarkerTexture.anisotropy = 8; _deathMarkerTexture.needsUpdate = true;
+        return _deathMarkerTexture;
       }
       function createDeathMarker() {
-        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: getDeathMarkerTexture(), transparent: true, depthTest: true, depthWrite: false }));
-        sprite.scale.set(0.55, 0.55, 1);
-        sprite.position.set(0, 1.85, 0);
-        return sprite;
+        const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: getDeathMarkerTexture(), transparent: true, depthTest: true, depthWrite: false }));
+        s.scale.set(0.55, 0.55, 1); s.position.set(0, 1.85, 0); return s;
       }
-
       let _healthTextures = null;
       function getHealthTextures() {
         if (_healthTextures) return _healthTextures;
-        _healthTextures = [];
-        const w = 96, h = 12;
+        _healthTextures = []; const w = 96, h = 12;
         for (let lv = 0; lv <= 20; lv++) {
           const ratio = lv / 20;
-          const c = document.createElement('canvas');
-          c.width = w; c.height = h;
-          const ctx = c.getContext('2d');
-          ctx.fillStyle = 'rgba(0,0,0,0.75)';
-          ctx.fillRect(0, 0, w, h);
+          const c = document.createElement('canvas'); c.width = w; c.height = h;
+          const x = c.getContext('2d');
+          x.fillStyle = 'rgba(0,0,0,0.75)'; x.fillRect(0, 0, w, h);
           const fw = Math.round((w - 2) * ratio);
           if (fw > 0) {
             let col;
@@ -4538,179 +4817,116 @@
             else if (ratio > 0.30) col = '#ffdd33';
             else if (ratio > 0.15) col = '#ff8800';
             else col = '#ff2a2a';
-            ctx.fillStyle = col; ctx.fillRect(1, 1, fw, h - 2);
+            x.fillStyle = col; x.fillRect(1, 1, fw, h - 2);
           }
-          const tex = new THREE.CanvasTexture(c);
-          tex.anisotropy = 4; tex.needsUpdate = true;
-          _healthTextures.push(tex);
+          const t = new THREE.CanvasTexture(c); t.anisotropy = 4; t.needsUpdate = true;
+          _healthTextures.push(t);
         }
         return _healthTextures;
       }
-
       const people = [];
       function createPerson(x, z, color = 0x2266ff, workstation = null) {
         const group = new THREE.Group();
-        const bodyMat  = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
-        const skinMat  = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.8 });
+        const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+        const skinMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.8 });
         const pantsMat = new THREE.MeshStandardMaterial({ color: 0x2a3550, roughness: 0.85 });
-        const shoeMat  = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6 });
-
+        const shoeMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6 });
         const body = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.17, 0.6, 10), bodyMat);
-        body.position.y = 0.95;
-        body.castShadow = true;
-        group.add(body);
-
+        body.position.y = 0.95; body.castShadow = true; group.add(body);
         const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 10), skinMat);
-        head.position.y = 0.5;
-        head.castShadow = true;
-        body.add(head);
-
+        head.position.y = 0.5; head.castShadow = false; body.add(head);
         function buildArm(side) {
-          const shoulder = new THREE.Group();
-          shoulder.position.set(side * 0.20, 0.22, 0);
-          body.add(shoulder);
-          const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.26, 8), bodyMat);
-          upperArm.position.y = -0.13; upperArm.castShadow = true; shoulder.add(upperArm);
-          const elbow = new THREE.Group();
-          elbow.position.y = -0.26;
-          shoulder.add(elbow);
+          const shoulder = new THREE.Group(); shoulder.position.set(side * 0.20, 0.22, 0); body.add(shoulder);
+          const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.26, 8), bodyMat);
+          upper.position.y = -0.13; upper.castShadow = false; shoulder.add(upper);
+          const elbow = new THREE.Group(); elbow.position.y = -0.26; shoulder.add(elbow);
           const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.045, 0.24, 8), skinMat);
-          forearm.position.y = -0.12; forearm.castShadow = true; elbow.add(forearm);
+          forearm.position.y = -0.12; forearm.castShadow = false; elbow.add(forearm);
           const hand = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), skinMat);
-          hand.position.y = -0.27; hand.castShadow = true; elbow.add(hand);
+          hand.position.y = -0.27; hand.castShadow = false; elbow.add(hand);
           return { shoulder, elbow };
         }
-
         function buildLeg(side) {
-          const hip = new THREE.Group();
-          hip.position.set(side * 0.085, -0.325, 0);
-          body.add(hip);
+          const hip = new THREE.Group(); hip.position.set(side * 0.085, -0.325, 0); body.add(hip);
           const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.07, 0.28, 8), pantsMat);
-          thigh.position.y = -0.14; thigh.castShadow = true; hip.add(thigh);
-          const knee = new THREE.Group();
-          knee.position.y = -0.28;
-          hip.add(knee);
+          thigh.position.y = -0.14; thigh.castShadow = false; hip.add(thigh);
+          const knee = new THREE.Group(); knee.position.y = -0.28; hip.add(knee);
           const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.055, 0.28, 8), pantsMat);
-          shin.position.y = -0.14; shin.castShadow = true; knee.add(shin);
+          shin.position.y = -0.14; shin.castShadow = false; knee.add(shin);
           const foot = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.06, 0.22), shoeMat);
-          foot.position.set(0, -0.28 - 0.02, 0.04); foot.castShadow = true; knee.add(foot);
+          foot.position.set(0, -0.28 - 0.02, 0.04); foot.castShadow = false; knee.add(foot);
           return { hip, knee };
         }
-
-        const leftArm  = buildArm(-1);
-        const rightArm = buildArm(1);
-        const leftLeg  = buildLeg(-1);
-        const rightLeg = buildLeg(1);
-
-        const healthBar = new THREE.Sprite(new THREE.SpriteMaterial({
-          map: getHealthTextures()[20], transparent: true, depthTest: true, depthWrite: false
-        }));
-        healthBar.scale.set(1.0, 0.225, 1);
-        healthBar.position.set(0, 1.95, 0);
-        group.add(healthBar);
-
+        const leftArm = buildArm(-1), rightArm = buildArm(1);
+        const leftLeg = buildLeg(-1), rightLeg = buildLeg(1);
+        const healthBar = new THREE.Sprite(new THREE.SpriteMaterial({ map: getHealthTextures()[20], transparent: true, depthTest: true, depthWrite: false }));
+        healthBar.scale.set(1.0, 0.225, 1); healthBar.position.set(0, 1.95, 0); group.add(healthBar);
         let px = x, pz = z, rotY = Math.random() * Math.PI * 2, isSitting = false;
-        if (workstation) {
-          px = workstation.seatPos.x;
-          pz = workstation.seatPos.z;
-          rotY = workstation.rotationY + Math.PI;
-          isSitting = true;
-        }
-        group.position.set(px, isSitting ? -0.15 : 0, pz);
-        group.rotation.y = rotY;
+        if (workstation) { px = workstation.seatPos.x; pz = workstation.seatPos.z; rotY = workstation.rotationY + Math.PI; isSitting = true; }
+        group.position.set(px, isSitting ? -0.15 : 0, pz); group.rotation.y = rotY;
         if (buildScene) buildScene.add(group);
-
         const personObj = {
           mesh: group, body, head,
-          leftShoulder: leftArm.shoulder,  leftElbow: leftArm.elbow,
+          leftShoulder: leftArm.shoulder, leftElbow: leftArm.elbow,
           rightShoulder: rightArm.shoulder, rightElbow: rightArm.elbow,
-          leftHip: leftLeg.hip, leftKnee: leftLeg.knee,
-          rightHip: rightLeg.hip, rightKnee: rightLeg.knee,
+          leftHip: leftLeg.hip, leftKnee: leftLeg.knee, rightHip: rightLeg.hip, rightKnee: rightLeg.knee,
           bodyMat, skinMat, pantsMat, shoeMat,
-          name: generateArgentineName(),
-          x: px, z: pz,
-          workstation: workstation,
-          speed: 2.5,
-          animOffset: Math.random() * Math.PI * 2,
+          name: generateArgentineName(), x: px, z: pz, workstation,
+          speed: 2.5, animOffset: Math.random() * Math.PI * 2,
           state: isSitting ? 'sitting' : 'idle',
-          isDead: false,
-          deathMarker: null,
-          healthBar
+          isDead: false, deathMarker: null, healthBar
         };
-
         group.traverse(c => { if (c.isMesh) c.userData.person = personObj; });
         people.push(personObj);
         return personObj;
       }
-
-      /* ═══ Funciones de animación (copia de 636-684) ═══ */
       function animatePersonWalk(p, time, intensity) {
         const amp = intensity ?? 1.0;
         const phase = time * 9 * p.speed + p.animOffset;
         const s = Math.sin(phase);
         p.body.position.y = 0.95 + Math.abs(Math.cos(phase)) * 0.03;
-        p.leftHip.rotation.x  = -s * 0.55 * amp;
-        p.rightHip.rotation.x =  s * 0.55 * amp;
+        p.leftHip.rotation.x = -s * 0.55 * amp; p.rightHip.rotation.x = s * 0.55 * amp;
         const kneeBend = (ph) => 0.05 + Math.max(0, Math.cos(ph)) * 0.9 * amp + Math.max(0, -Math.sin(ph)) * 0.3 * amp;
-        p.leftKnee.rotation.x  = kneeBend(phase);
-        p.rightKnee.rotation.x = kneeBend(phase + Math.PI);
-        p.leftShoulder.rotation.x  =  s * 0.6 * amp;
-        p.rightShoulder.rotation.x = -s * 0.6 * amp;
-        p.leftElbow.rotation.x  = -(0.15 + Math.max(0, -s) * 0.45 * amp);
-        p.rightElbow.rotation.x = -(0.15 + Math.max(0,  s) * 0.45 * amp);
+        p.leftKnee.rotation.x = kneeBend(phase); p.rightKnee.rotation.x = kneeBend(phase + Math.PI);
+        p.leftShoulder.rotation.x = s * 0.6 * amp; p.rightShoulder.rotation.x = -s * 0.6 * amp;
+        p.leftElbow.rotation.x = -(0.15 + Math.max(0, -s) * 0.45 * amp);
+        p.rightElbow.rotation.x = -(0.15 + Math.max(0, s) * 0.45 * amp);
       }
       function animatePersonIdle(p) {
         p.body.position.y = 0.95;
-        p.leftHip.rotation.x = 0;   p.rightHip.rotation.x = 0;
-        p.leftKnee.rotation.x = 0;  p.rightKnee.rotation.x = 0;
-        p.leftShoulder.rotation.x = 0;  p.rightShoulder.rotation.x = 0;
+        p.leftHip.rotation.x = 0; p.rightHip.rotation.x = 0;
+        p.leftKnee.rotation.x = 0; p.rightKnee.rotation.x = 0;
+        p.leftShoulder.rotation.x = 0; p.rightShoulder.rotation.x = 0;
         p.leftElbow.rotation.x = -0.12; p.rightElbow.rotation.x = -0.12;
       }
       function animatePersonSit(p, time) {
-        const breath = Math.sin(time * 1.5 + p.animOffset);
-        p.body.position.y = 0.95 + breath * 0.005;
-        p.leftHip.rotation.x  = -1.5;  p.rightHip.rotation.x = -1.5;
-        p.leftKnee.rotation.x  = 1.5;  p.rightKnee.rotation.x = 1.5;
-        p.leftShoulder.rotation.x  = -0.35;  p.rightShoulder.rotation.x = -0.35;
-        p.leftElbow.rotation.x  = -0.75;  p.rightElbow.rotation.x = -0.75;
+        const b = Math.sin(time * 1.5 + p.animOffset);
+        p.body.position.y = 0.95 + b * 0.005;
+        p.leftHip.rotation.x = -1.5; p.rightHip.rotation.x = -1.5;
+        p.leftKnee.rotation.x = 1.5; p.rightKnee.rotation.x = 1.5;
+        p.leftShoulder.rotation.x = -0.35; p.rightShoulder.rotation.x = -0.35;
+        p.leftElbow.rotation.x = -0.75; p.rightElbow.rotation.x = -0.75;
       }
       function animatePersonDoorReach(p) {
         p.body.position.y = 0.95;
-        p.leftHip.rotation.x = 0;   p.rightHip.rotation.x = 0;
-        p.leftKnee.rotation.x = 0;  p.rightKnee.rotation.x = 0;
-        p.rightShoulder.rotation.x = -1.3;
-        p.rightElbow.rotation.x    = -0.25;
-        p.leftShoulder.rotation.x = 0;
-        p.leftElbow.rotation.x    = -0.15;
+        p.leftHip.rotation.x = 0; p.rightHip.rotation.x = 0;
+        p.leftKnee.rotation.x = 0; p.rightKnee.rotation.x = 0;
+        p.rightShoulder.rotation.x = -1.3; p.rightElbow.rotation.x = -0.25;
+        p.leftShoulder.rotation.x = 0; p.leftElbow.rotation.x = -0.15;
       }
       function killPerson(p) {
         if (p.isDead) return;
         p.isDead = true; p.state = 'dead';
-        p.body.traverse(c => {
-          if (c.isMesh && c.material) {
-            if (c.material.color) c.material.color.setHex(0x111111);
-            if (c.material.roughness !== undefined) c.material.roughness = 1.0;
-          }
-        });
+        p.body.traverse(c => { if (c.isMesh && c.material) { if (c.material.color) c.material.color.setHex(0x111111); if (c.material.roughness !== undefined) c.material.roughness = 1.0; } });
         animatePersonIdle(p);
         if (p.healthBar) p.healthBar.visible = false;
-        if (!p.deathMarker) {
-          const m = createDeathMarker();
-          p.mesh.add(m);
-          p.deathMarker = m;
-        }
+        if (!p.deathMarker) { const m = createDeathMarker(); p.mesh.add(m); p.deathMarker = m; }
       }
-
-      /* ═══ createFireDemo (copia de 697-1003, solo la parte de fuego) ═══ */
       function createFireDemo(x, z) {
-        const flameCount = 120;
-        const poolSize = 2000;
-        const flameTop = 1.0;
-        const ceilingLimit = 2.5;
+        const flameCount = 120, poolSize = 2000, flameTop = 1.0, ceilingLimit = 2.5;
         const sc = buildScene;
         const light = new THREE.PointLight(0xff4400, 1.0, 8, 2);
-        light.position.set(x, 0.8, z);
-        if (sc) sc.add(light);
+        light.position.set(x, 0.8, z); if (sc) sc.add(light);
         const flameGeo = new THREE.BufferGeometry();
         const flamePos = new Float32Array(flameCount * 3);
         const flameSpeeds = [];
@@ -4722,26 +4938,21 @@
         }
         flameGeo.setAttribute('position', new THREE.BufferAttribute(flamePos, 3));
         const flameMat = new THREE.PointsMaterial({ color: 0xff3700, size: 0.23, transparent: true, opacity: 0.85 });
-        const flames = new THREE.Points(flameGeo, flameMat);
-        if (sc) sc.add(flames);
+        const flames = new THREE.Points(flameGeo, flameMat); if (sc) sc.add(flames);
         const smokeGeo = new THREE.BufferGeometry();
         const smokePos = new Float32Array(poolSize * 3);
         const smokeVel = [];
         for (let i = 0; i < poolSize; i++) {
-          smokePos[i*3] = x;
-          smokePos[i*3+1] = -9999;
-          smokePos[i*3+2] = z;
-          const angle = Math.random() * Math.PI * 2;
-          const spread = 0.3 + Math.random() * 0.7;
-          smokeVel.push({ vx: Math.cos(angle) * spread, vy: 1.0 + Math.random() * 2.0, vz: Math.sin(angle) * spread, cooling: false, cool: 0.01 + Math.random() * 0.02 });
+          smokePos[i*3] = x; smokePos[i*3+1] = -9999; smokePos[i*3+2] = z;
+          const a = Math.random() * Math.PI * 2;
+          const s = 0.3 + Math.random() * 0.7;
+          smokeVel.push({ vx: Math.cos(a) * s, vy: 1.0 + Math.random() * 2.0, vz: Math.sin(a) * s, cooling: false, cool: 0.01 + Math.random() * 0.02 });
         }
         smokeGeo.setAttribute('position', new THREE.BufferAttribute(smokePos, 3));
         const smokeMat = new THREE.PointsMaterial({ color: 0x1a1a1a, size: 0.35, transparent: true, opacity: 0.4, depthWrite: false });
         const smoke = new THREE.Points(smokeGeo, smokeMat);
-        smoke.frustumCulled = false;
-        if (sc) sc.add(smoke);
-        let activeSmokeCount = 0;
-        let spawnAcc = 0;
+        smoke.frustumCulled = false; if (sc) sc.add(smoke);
+        let activeSmokeCount = 0, spawnAcc = 0;
         return {
           light, flames, smoke,
           update(dt, time) {
@@ -4755,14 +4966,10 @@
             }
             flameGeo.attributes.position.needsUpdate = true;
             light.intensity = 0.8 + Math.sin(time * 15) * 0.3 + Math.random() * 0.2;
-            spawnAcc += 40 * dt;
-            const n = Math.floor(spawnAcc);
-            spawnAcc -= n;
+            spawnAcc += 40 * dt; const n = Math.floor(spawnAcc); spawnAcc -= n;
             for (let s = 0; s < n && activeSmokeCount < poolSize; s++) {
               const idx = activeSmokeCount * 3;
-              smokePos[idx] = x + (Math.random() - 0.5) * 0.8;
-              smokePos[idx+1] = 0.7;
-              smokePos[idx+2] = z + (Math.random() - 0.5) * 0.8;
+              smokePos[idx] = x + (Math.random() - 0.5) * 0.8; smokePos[idx+1] = 0.7; smokePos[idx+2] = z + (Math.random() - 0.5) * 0.8;
               smokeVel[activeSmokeCount].cooling = false;
               activeSmokeCount++;
             }
@@ -4776,17 +4983,13 @@
                 smokePos[idx+2] += (Math.random() - 0.5) * 0.2 * dt;
                 if (smokePos[idx+1] >= ceilingLimit) { smokePos[idx+1] = ceilingLimit; v.cooling = true; }
               } else {
-                smokePos[idx] += v.vx * dt;
-                smokePos[idx+2] += v.vz * dt;
-                smokePos[idx+1] -= v.cool * dt;
+                smokePos[idx] += v.vx * dt; smokePos[idx+2] += v.vz * dt; smokePos[idx+1] -= v.cool * dt;
               }
               if (smokePos[idx+1] <= 0.6) {
                 activeSmokeCount--;
                 if (i !== activeSmokeCount) {
                   const last = activeSmokeCount * 3;
-                  smokePos[idx] = smokePos[last];
-                  smokePos[idx+1] = smokePos[last+1];
-                  smokePos[idx+2] = smokePos[last+2];
+                  smokePos[idx] = smokePos[last]; smokePos[idx+1] = smokePos[last+1]; smokePos[idx+2] = smokePos[last+2];
                 }
                 smokePos[activeSmokeCount * 3 + 1] = -9999;
               }
@@ -4795,21 +4998,17 @@
           },
           dispose() {
             if (sc) { sc.remove(light); sc.remove(flames); sc.remove(smoke); }
-            flameGeo.dispose(); flameMat.dispose();
-            smokeGeo.dispose(); smokeMat.dispose();
+            flameGeo.dispose(); flameMat.dispose(); smokeGeo.dispose(); smokeMat.dispose();
           }
         };
       }
-
-      /* ═══ Helpers + MINI (copia de 1166-1329) ═══ */
       function inMini(sc, fn) {
         const np = people.length, nw = workstations.length, nd = doorsList.length;
         buildScene = sc;
         try { return fn(); } finally { buildScene = null; people.length = np; workstations.length = nw; doorsList.length = nd; }
       }
       function miniBase(camPos, look) {
-        const sc = new THREE.Scene();
-        sc.background = new THREE.Color(0xeceff3);
+        const sc = new THREE.Scene(); sc.background = new THREE.Color(0xeceff3);
         sc.add(new THREE.AmbientLight(0xffffff, 0.55));
         const d = new THREE.DirectionalLight(0xffffff, 0.6); d.position.set(4, 8, 5); sc.add(d);
         sc.add(new THREE.Mesh(new THREE.PlaneGeometry(30, 30).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 })));
@@ -4826,27 +5025,21 @@
         x.fillStyle = '#ffcc00'; x.beginPath(); x.arc(32, 32, 28, 0, Math.PI * 2); x.fill();
         x.fillStyle = '#000'; x.font = 'bold 44px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('!', 32, 35);
         const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthTest: false }));
-        s.scale.set(0.45, 0.45, 1); s.position.set(0, 1.9, 0); s.visible = false;
-        return s;
+        s.scale.set(0.45, 0.45, 1); s.position.set(0, 1.9, 0); s.visible = false; return s;
       }
-
       function walkTo(p, t, dt) {
-        const w = p.path[p.wi];
-        if (!w) { animatePersonIdle(p); return; }
+        const w = p.path[p.wi]; if (!w) { animatePersonIdle(p); return; }
         const m = p.mesh.position, dx = w[0] - m.x, dz = w[1] - m.z, d = Math.hypot(dx, dz);
         if (d < 0.05) { p.wi++; return; }
         p.mesh.rotation.y = Math.atan2(dx, dz);
         const s = Math.min(d, 1.5 * dt); m.x += dx / d * s; m.z += dz / d * s;
         animatePersonWalk(p, t, 1);
       }
-
       const MINI = {
         walk() {
           const { sc, cam } = miniBase([0, 5.5, 8], [0, 0.7, 0]);
-          const cfg = [[1.5, 0x4fc3ff, -1.5], [2.5, 0x4fff4f, 0], [4, 0xff8800, 1.5]];
-          const ps = inMini(sc, () => cfg.map(([v, c, z]) => {
-            const p = createPerson(0, z, c, null); p.speed = v; p.state = 'walk'; p.mesh.rotation.y = Math.PI / 2; return p;
-          }));
+          const cfg = [[1.0, 0x4fc3ff, -1.5], [1.4, 0x4fff4f, 0], [1.8, 0xff8800, 1.5]];
+          const ps = inMini(sc, () => cfg.map(([v, c, z]) => { const p = createPerson(0, z, c, null); p.speed = v; p.state = 'walk'; p.mesh.rotation.y = Math.PI / 2; return p; }));
           return { sc, cam,
             update(dt, t) { ps.forEach((p, i) => { p.mesh.position.x = -4 + (t * cfg[i][0]) % 8; animatePersonWalk(p, t, 1); }); },
             hud: () => cfg.map(([v, c]) => chip('● ' + String(v).replace('.', ',') + ' m/s', hexCss(c))).join('')
@@ -4874,17 +5067,12 @@
           reset();
           return { sc, cam,
             update(dt, t) {
-              T = (t * 4) % 72;
-              if (T < prev) reset();
-              prev = T;
-              fire.update(dt, t);
-              updateDoors(dt, [door]);
+              T = (t * 4) % 72; if (T < prev) reset(); prev = T;
+              fire.update(dt, t); updateDoors(dt, [door]);
               P.forEach((p, i) => {
                 const m = p.mesh.position;
-                if (p.state === 'sitting') {
-                  animatePersonSit(p, t);
-                  if (T >= react[i]) { p.state = 'walk'; m.y = 0; }
-                } else if (p.state === 'door') {
+                if (p.state === 'sitting') { animatePersonSit(p, t); if (T >= react[i]) { p.state = 'walk'; m.y = 0; } }
+                else if (p.state === 'door') {
                   animatePersonDoorReach(p);
                   if (t - p.t0 > 0.35 && !door.isOpen) { door.isOpen = true; door.targetAngle = door.baseAngle + door.openAngle; }
                   if (t - p.t0 > 0.9) p.state = 'walk';
@@ -4916,14 +5104,11 @@
           build();
           return { sc, cam,
             update(dt, t) {
-              c = t % 13;
-              if (c < prev) { sc.remove(p.mesh); build(); }
-              prev = c;
+              c = t % 13; if (c < prev) { sc.remove(p.mesh); build(); } prev = c;
               h = clamp(1 - c / 10, 0, 1);
               cloud.material.opacity = 0.12 + 0.45 * (1 - h);
               if (c < 10) {
-                const k = 1 - h;
-                animatePersonIdle(p);
+                const k = 1 - h; animatePersonIdle(p);
                 p.body.rotation.x = 0.4 * k;
                 p.body.position.y = 0.95 + Math.abs(Math.sin(t * 13)) * 0.02 * k;
                 p.healthBar.material.map = getHealthTextures()[Math.round(h * 20)];
@@ -4946,28 +5131,20 @@
           reset();
           return { sc, cam,
             update(dt, t) {
-              T = (t % 14) * 10;
-              if (T < prev) reset();
-              prev = T;
+              T = (t % 14) * 10; if (T < prev) reset(); prev = T;
               if (T >= 60 && !fires[1]) fires[1] = inMini(sc, () => createFireDemo(XS[3], 0));
               fires.forEach(f => f && f.update(dt, t));
-              s = stIdx(T);
-              tint.material.color.lerp(new THREE.Color(ST[s][1]), 0.06);
+              s = stIdx(T); tint.material.color.lerp(new THREE.Color(ST[s][1]), 0.06);
             },
             hud: () => chip('⏱ ' + (T | 0) + ' s (×10)') + chip('Sector: ' + ST[s][0], ST[s][2]) +
               (T >= 60 ? chip('🔥 Contagia a la de al lado', '#ff9a4d') : chip('🔥 Arde la del medio', '#ffcc00'))
           };
         }
       };
-
-      let running = false;
-      let miniR = null;
-      let miniIO = null;
+      let running = false, miniR = null, miniIO = null;
       const miniTiles = [];
-
       function start() {
-        if (running) return;
-        running = true;
+        if (running) return; running = true;
         try {
           miniR = new THREE.WebGLRenderer({ antialias: true });
           miniR.setPixelRatio(1); miniR.setSize(480, 300, false);
@@ -5006,69 +5183,50 @@
 
     const introOverlay = document.getElementById('intro-overlay');
     const btnIniciarSim = document.getElementById('btn-iniciar-sim');
-
-    function cerrarPresentacion() {
-      PRES.stop();
-      introOverlay.classList.add('intro-hidden');
-      presentationOpen = false;
-    }
-
+    function cerrarPresentacion() { PRES.stop(); introOverlay.classList.add('intro-hidden'); presentationOpen = false; }
     function startSimulation() {
       if (simStarted) return;
       const d = new Date();
       simClockSeconds = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
-      lastRelojHora = '';
-      lastRelojVel = '';
-      simStarted = true;
-      cerrarPresentacion();
+      lastRelojHora = ''; lastRelojVel = '';
+      simStarted = true; cerrarPresentacion();
     }
-
     function abrirPresentacion() {
       if (!simStarted) return;
       if (povPerson) exitPov();
       if (firePlacementMode) setFirePlacementMode(false);
       const marco = document.getElementById('corte-marco');
       if (marco && marco.classList.contains('maximized')) toggleMaximizeCorte();
-      toggleMenu(false);
-      hidePersonTooltip();
+      toggleMenu(false); hidePersonTooltip();
       presentationOpen = true;
       btnIniciarSim.textContent = 'Volver a la simulación';
       introOverlay.classList.remove('intro-hidden');
-      const scroll = document.querySelector('.intro-scroll');
-      if (scroll) scroll.scrollTop = 0;
+      const scroll = document.querySelector('.intro-scroll'); if (scroll) scroll.scrollTop = 0;
       PRES.start();
     }
-
     if (btnIniciarSim) btnIniciarSim.addEventListener('click', () => {
-      if (!simStarted) startSimulation();
-      else cerrarPresentacion();
+      if (!simStarted) startSimulation(); else cerrarPresentacion();
     });
     window.addEventListener('keydown', (e) => {
       if (!simStarted && e.key === 'Enter') { e.preventDefault(); startSimulation(); }
     });
-
     const btnVerPresentacion = document.getElementById('btn-ver-presentacion');
     if (btnVerPresentacion) btnVerPresentacion.addEventListener('click', abrirPresentacion);
-
     function onResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      povCamera.aspect = window.innerWidth / window.innerHeight;
-      povCamera.updateProjectionMatrix();
+      camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+      povCamera.aspect = window.innerWidth / window.innerHeight; povCamera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
       const marcoCorte = document.getElementById('corte-marco');
       if (marcoCorte) {
         const rectCorte = marcoCorte.getBoundingClientRect();
         if (rectCorte.width > 4 && rectCorte.height > 4) {
-          cutCamera.aspect = rectCorte.width / rectCorte.height;
-          cutCamera.updateProjectionMatrix();
+          cutCamera.aspect = rectCorte.width / rectCorte.height; cutCamera.updateProjectionMatrix();
         }
       }
       if (povPerson) repositionClockForPov();
     }
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', () => { setTimeout(onResize, 250); });
-
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         if (presentationOpen) { cerrarPresentacion(); return; }
